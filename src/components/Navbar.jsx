@@ -85,7 +85,7 @@ const Navbar = ({isAssistantOpen, onToggleAssistant, onCloseAssistant}) => {
                     <Button variant="link" onClick={() => navigate('/')}>
                         Главная
                     </Button>
-                    <Button variant="link" onClick={() => navigate('/user/orders')}>
+                    <Button variant="link" onClick={() => navigate('/orders')}>
                         Заказы
                     </Button>
                 </div>

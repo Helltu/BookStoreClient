@@ -81,7 +81,7 @@ const CartBookItem = React.memo(({ book, updateQuantity, removeBook, onClose }) 
                     className="text-lg font-semibold text-gray-700 cursor-pointer"
                     onClick={() => {
                         onClose();
-                        navigate(`/book/${book.bookId}`);
+                        navigate(`/books/${book.bookId}`);
                     }}
                 >
                     {bookData.title || 'Название не указано'}

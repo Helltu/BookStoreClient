@@ -29,40 +29,41 @@ const BookDetailsPage = () => {
     const [hasChanges, setHasChanges] = useState(true);
 
     const fetchBookData = useCallback(async () => {
-        if (!userId) return;
+        setIsLoading(true);
         try {
-            const bookDetailsResponse = await axiosInstance.get(
-                `/general/books/${id}/details?userId=${userId}`
-            );
-            const cartResponse = await axiosInstance.get(`/client/${userId}/cart`);
-
+            const detailsUrl = userId ? `/general/books/${id}/details?userId=${userId}` : `/general/books/${id}/details`;
+            const bookDetailsResponse = await axiosInstance.get(detailsUrl);
             const bookDetails = bookDetailsResponse.data;
+
             setBook(bookDetails.book);
             setRating(bookDetails.rating);
             setGenres(bookDetails.genres);
             setMedia(bookDetails.media.sort((a, b) => a.id - b.id));
             setReviews(bookDetails.reviews);
 
-            if (bookDetails.userReview) {
-                setUserReview(bookDetails.userReview);
-                setReviewRating(bookDetails.userReview.rating);
-                setReviewComment(bookDetails.userReview.text);
-                setHasChanges(false);
-            } else {
-                setReviewRating(5);
-                setReviewComment('');
-                setHasChanges(true);
-            }
+            if (userId) {
+                if (bookDetails.userReview) {
+                    setUserReview(bookDetails.userReview);
+                    setReviewRating(bookDetails.userReview.rating);
+                    setReviewComment(bookDetails.userReview.text);
+                    setHasChanges(false);
+                } else {
+                    setReviewRating(5);
+                    setReviewComment('');
+                    setHasChanges(true);
+                }
 
-            const cartItem = cartResponse.data.find(
-                (item) => item.bookId === bookDetails.book.id
-            );
-            if (cartItem) {
-                setIsInCart(true);
-                setQuantity(cartItem.amt);
-            } else {
-                setIsInCart(false);
-                setQuantity(1);
+                const cartResponse = await axiosInstance.get(`/client/${userId}/cart`);
+                const cartItem = cartResponse.data.find(
+                    (item) => item.bookId === bookDetails.book.id
+                );
+                if (cartItem) {
+                    setIsInCart(true);
+                    setQuantity(cartItem.amt);
+                } else {
+                    setIsInCart(false);
+                    setQuantity(1);
+                }
             }
         } catch (error) {
             console.error('Ошибка загрузки данных книги:', error);
@@ -74,14 +75,14 @@ const BookDetailsPage = () => {
     useEffect(() => {
         fetchBookData();
 
-        const handleCartUpdate = () => fetchBookData();
-
-        window.addEventListener('cart-updated', handleCartUpdate);
-
-        return () => {
-            window.removeEventListener('cart-updated', handleCartUpdate);
-        };
-    }, [fetchBookData]);
+        if (userId) {
+            const handleCartUpdate = () => fetchBookData();
+            window.addEventListener('cart-updated', handleCartUpdate);
+            return () => {
+                window.removeEventListener('cart-updated', handleCartUpdate);
+            };
+        }
+    }, [fetchBookData, userId]);
 
     const updateRating = async () => {
         try {

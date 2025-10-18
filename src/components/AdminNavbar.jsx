@@ -62,7 +62,7 @@ const AdminNavbar = () => {
                 <div className="flex items-center space-x-4">
                     {isLogoVisible ? (
                         <img
-                            onClick={() => navigate('/admin')}
+                            onClick={() => navigate('/books')}
                             src={logo}
                             alt="Admin Panel Logo"
                             className="h-10 w-auto cursor-pointer"
@@ -84,7 +84,7 @@ const AdminNavbar = () => {
 
                 {/* Навигационные кнопки */}
                 <div className="flex items-left space-x-6">
-                    <Button variant="link" onClick={() => navigate('/admin/books')}>
+                    <Button variant="link" onClick={() => navigate('/books')}>
                         Книги
                     </Button>
                     <Button variant="link" onClick={() => navigate('/admin/genres')}>

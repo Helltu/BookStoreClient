@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 
 const AdminAddBookPage = () => {
     const { toast } = useToast();
+    const location = useLocation();
+    const bookData = location.state?.bookData;
 
     const [bookDetails, setBookDetails] = useState({
         title: '',
@@ -31,6 +34,25 @@ const AdminAddBookPage = () => {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [mediaFiles, setMediaFiles] = useState([]);
     const [previewImages, setPreviewImages] = useState([]);
+
+    useEffect(() => {
+        if (bookData) {
+            setBookDetails({
+                title: bookData.title || '',
+                author: bookData.authors || '',
+                publisher: bookData.publisher || '',
+                publicationYear: bookData.publicationYear || '',
+                pages: bookData.pages || '',
+                amt: bookData.amt || '',
+                cost: bookData.cost || '',
+                hardcover: bookData.hardcover !== undefined ? bookData.hardcover : true,
+                description: bookData.description || '',
+            });
+            if (bookData.cover_image) {
+                setPreviewImages([bookData.cover_image]);
+            }
+        }
+    }, [bookData]);
 
     useEffect(() => {
         const fetchGenres = async () => {

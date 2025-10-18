@@ -30,6 +30,7 @@ import {FunnelIcon, PlusIcon} from '@heroicons/react/24/solid';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {useToast} from '@/hooks/use-toast';
 import {useSearch} from '@/api/SearchContext';
+import AddBookDialog from '@/components/AddBookDialog';
 
 const sortOptions = [
     {name: 'Популярности', value: 'popularity_desc'},
@@ -125,6 +126,7 @@ const BooksCatalogPage = () => {
 
     const [state, dispatch] = useReducer(reducer, initialState);
     const [isAdmin, setIsAdmin] = useState(false);
+    const [isAddBookDialogOpen, setIsAddBookDialogOpen] = useState(false);
 
     const {
         books,
@@ -175,6 +177,7 @@ const BooksCatalogPage = () => {
                 dispatch({type: 'SET_BOOKS', payload: filteredBooks});
             } catch (error) {
                 console.error('Ошибка при загрузке книг:', error);
+                dispatch({type: 'SET_IS_LOADING', payload: false});
             }
         },
         [filters, sort, endHardcover, searchTerm, isAdmin]
@@ -290,13 +293,16 @@ const BooksCatalogPage = () => {
                     <div className="flex items-center space-x-4">
                         {/* Кнопка добавления книги для администратора */}
                         {isAdmin && (
-                            <Button
-                                onClick={() => navigate('/admin/add-book')}
-                                className="flex items-center space-x-1"
-                            >
-                                <PlusIcon className="h-5 w-5"/>
-                                <span>Добавить книгу</span>
-                            </Button>
+                            <>
+                                <Button
+                                    onClick={() => setIsAddBookDialogOpen(true)}
+                                    className="flex items-center space-x-1"
+                                >
+                                    <PlusIcon className="h-5 w-5"/>
+                                    <span>Добавить книгу</span>
+                                </Button>
+                                <AddBookDialog isOpen={isAddBookDialogOpen} onOpenChange={setIsAddBookDialogOpen}/>
+                            </>
                         )}
                         {/* Панель фильтров */}
                         <Sheet open={isSheetOpen}
@@ -344,13 +350,16 @@ const BooksCatalogPage = () => {
                 <div className="flex items-center space-x-4">
                     {/* Кнопка добавления книги для администратора */}
                     {isAdmin && (
-                        <Button
-                            onClick={() => navigate('/admin/add-book')}
-                            className="flex items-center space-x-1"
-                        >
-                            <PlusIcon className="h-5 w-5"/>
-                            <span>Добавить книгу</span>
-                        </Button>
+                        <>
+                            <Button
+                                onClick={() => setIsAddBookDialogOpen(true)}
+                                className="flex items-center space-x-1"
+                            >
+                                <PlusIcon className="h-5 w-5"/>
+                                <span>Добавить книгу</span>
+                            </Button>
+                            <AddBookDialog isOpen={isAddBookDialogOpen} onOpenChange={setIsAddBookDialogOpen}/>
+                        </>
                     )}
                     {/* Панель фильтров */}
                     <Sheet open={isSheetOpen} onOpenChange={(open) => dispatch({type: 'TOGGLE_SHEET', payload: open})}>

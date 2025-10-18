@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import AuthPage from '@/pages/AuthPage';
 import BooksCatalogPage from '@/pages/BooksCatalogPage';
 import BookDetailsPage from '@/pages/BookDetailsPage';
@@ -18,6 +18,13 @@ import { SearchProvider } from '@/api/SearchContext';
 import { FavoritesProvider } from '@/api/FavoritesContext';
 import UserOrdersPage from '@/pages/UserOrdersPage';
 import DashboardPage from "@/pages/DashboardPage.jsx";
+import ApiSearchResultsPage from "@/pages/ApiSearchResultsPage";
+
+const BookDetailsWrapper = () => {
+    const { id } = useParams();
+    const isAdmin = JSON.parse(localStorage.getItem('isAdmin'));
+    return isAdmin ? <Navigate to={`/admin/book/${id}`} /> : <BookDetailsPage />;
+};
 
 const App = () => {
     const { toast } = useToast();
@@ -59,52 +66,37 @@ const App = () => {
         return null;
     }
 
-    const renderNavbar = () => {
-        if (isAuthPage || isErrorPage) {
-            return null;
-        }
-        if (isAdmin) {
-            return <AdminNavbar />;
-        }
-        return <Navbar isAssistantOpen={isAssistantOpen} onToggleAssistant={toggleAssistant} onCloseAssistant={closeAssistant} />;
-    };
 
     return (
-        <FavoritesProvider>
-            <SearchProvider>
-                <div className="flex min-h-screen w-full flex-col">
-                    {renderNavbar()}
-                    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-                        <Routes>
-                            <Route path="/login" element={<AuthPage />} />
-                            <Route path="/" element={<BooksCatalogPage />} />
-                            <Route path="/profile" element={<ProfilePage />} />
+        <SearchProvider>
+            <FavoritesProvider>
+                <div className="flex min-h-screen">
+                    <AssistantSidebar isOpen={isAssistantOpen} onClose={closeAssistant} />
+                    <div className="flex-1">
+                        {!isAuthPage && !isErrorPage && (isAdmin ? <AdminNavbar /> : <Navbar isAssistantOpen={isAssistantOpen} onToggleAssistant={toggleAssistant} onCloseAssistant={closeAssistant} />)}
+                        <main>
+                            <Routes>
+                                <Route path="/login" element={<AuthPage />} />
+                                <Route path="/" element={<Navigate to="/books" />} />
+                                <Route path="/books" element={<BooksCatalogPage />} />
+                                <Route path="/book/:id" element={<BookDetailsWrapper />} />
+                                <Route path="/profile" element={<ProfilePage />} />
+                                <Route path="/orders" element={<UserOrdersPage />} />
 
-                            {!isAdmin && (
-                                <>
-                                    <Route path="/book/:id" element={<BookDetailsPage />} />
-                                    <Route path="/user/orders" element={<UserOrdersPage />} />
-                                </>
-                            )}
-
-                            {isAdmin && (
-                                <>
-                                    <Route path="/book/:id" element={<AdminBookDetailsPage />} />
-                                    <Route path="/admin/add-book" element={<AdminAddBookPage />} />
-                                    <Route path="/admin/genres" element={<AdminGenresPage />} />
-                                    <Route path="/admin/orders" element={<AdminOrdersPage />} />
-                                    <Route path="/admin/dashboard" element={<DashboardPage />} />
-                                </>
-                            )}
-
-                            <Route path="*" element={<Navigate to="/" />} />
-                        </Routes>
-                    </main>
-                    <Toaster />
-                    <AssistantSidebar isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
+                                {/* Admin Routes */}
+                                <Route path="/admin/book/:id" element={isAdmin ? <AdminBookDetailsPage /> : <Navigate to="/books" />} />
+                                <Route path="/admin/add-book" element={isAdmin ? <AdminAddBookPage /> : <Navigate to="/books" />} />
+                                <Route path="/admin/genres" element={isAdmin ? <AdminGenresPage /> : <Navigate to="/books" />} />
+                                <Route path="/admin/orders" element={isAdmin ? <AdminOrdersPage /> : <Navigate to="/books" />} />
+                                <Route path="/admin/dashboard" element={isAdmin ? <DashboardPage /> : <Navigate to="/books" />} />
+                                <Route path="/admin/api-search-results" element={isAdmin ? <ApiSearchResultsPage /> : <Navigate to="/books" />} />
+                            </Routes>
+                        </main>
+                        <Toaster />
+                    </div>
                 </div>
-            </SearchProvider>
-        </FavoritesProvider>
+            </FavoritesProvider>
+        </SearchProvider>
     );
 };
 
