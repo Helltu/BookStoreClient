@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import mockCover from '@/assets/mock_cover_1.jpg';
 
 // Mock data that would come from an API
 const mockBooks = [
@@ -10,7 +11,7 @@ const mockBooks = [
         title: 'Опасная игра бабули',
         authors: 'Кристен Перрин',
         publicationYear: 2024,
-        cover_image: '/src/assets/mock_cover_1.png',
+        cover_image: mockCover,
         description: 'Захватывающий триллер о бабушке с неожиданным прошлым.',
         pages: 320,
         cost: 16.16,
@@ -25,7 +26,7 @@ const mockBooks = [
         title: 'День, когда я научился жить',
         authors: 'Лоран Гунель',
         publicationYear: 2018,
-        cover_image: 'https://placehold.co/150x220',
+        cover_image: mockCover,
         description: 'История о том, как изменить свою жизнь к лучшему.',
         pages: 288,
         cost: 7.05,
@@ -40,7 +41,7 @@ const mockBooks = [
         title: 'Кафе на краю земли',
         authors: 'Джон Стрелеки',
         publicationYear: 2010,
-        cover_image: 'https://placehold.co/150x220',
+        cover_image: mockCover,
         description: 'Книга, которая заставляет задуматься о смысле жизни.',
         pages: 160,
         cost: 8.48,
@@ -64,13 +65,13 @@ const ApiSearchResultsPage = () => {
     return (
         <div className="p-8 max-w-7xl mx-auto">
             <h1 className="text-3xl font-bold mb-4">Результаты поиска по API для "{searchQuery}"</h1>
-            <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 items-stretch">
                 {mockBooks.map((book) => (
-                    <Card key={book.id}>
+                    <Card key={book.id} className="flex flex-col h-full">
                         <CardHeader>
-                            <CardTitle>{book.title}</CardTitle>
+                            <CardTitle className="min-h-[3.5rem]">{book.title}</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="flex-grow">
                             <img src={book.cover_image} alt={book.title} className="w-full h-auto object-cover mb-4" />
                             <p className="text-sm text-gray-600">{book.authors} ({book.publicationYear})</p>
                             <p className="mt-2 text-sm">{book.description}</p>
@@ -86,4 +87,3 @@ const ApiSearchResultsPage = () => {
 };
 
 export default ApiSearchResultsPage;
-
