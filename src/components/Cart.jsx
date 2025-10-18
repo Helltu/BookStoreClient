@@ -205,6 +205,7 @@ const Cart = ({isOpen, onClose, userId, onCartUpdated}) => {
             if (onCartUpdated) {
                 onCartUpdated();
             }
+            window.dispatchEvent(new Event('cart-updated'));
         } catch (error) {
             console.error("Ошибка изменения количества:", error);
         }
@@ -223,6 +224,7 @@ const Cart = ({isOpen, onClose, userId, onCartUpdated}) => {
             if (onCartUpdated) {
                 onCartUpdated();
             }
+            window.dispatchEvent(new Event('cart-updated'));
         } catch (error) {
             console.error("Ошибка удаления книги:", error);
         }

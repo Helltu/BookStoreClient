@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '@/api/axios';
-import { Star } from 'lucide-react';
+import { Star, Heart } from 'lucide-react';
+import { useFavorites } from '@/api/FavoritesContext';
+import { Button } from '@/components/ui/button';
 
 const BookCard = ({ book }) => {
     const navigate = useNavigate();
+    const { toggleFavorite, isFavorite } = useFavorites();
     const [averageRating, setAverageRating] = useState(null);
     const [bookImage, setBookImage] = useState(null);
 
@@ -40,27 +43,41 @@ const BookCard = ({ book }) => {
     return (
         <div
             className="group relative border border-gray-200 p-4 rounded-lg hover:shadow-lg cursor-pointer"
-            onClick={() => navigate(`/book/${book.id}`)}
         >
-            <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-md group-hover:opacity-75">
-                <img
-                    src={bookImage ? `data:image/jpeg;base64,${bookImage}` : 'https://via.placeholder.com/250'}
-                    alt={`Обложка книги ${book.title}`}
-                    className="h-full w-full object-contain object-center"
-                />
+            <div className="absolute top-2 right-2 z-10">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(book.id);
+                    }}
+                >
+                    <Heart className={`h-5 w-5 ${isFavorite(book.id) ? 'text-red-500 fill-current' : 'text-gray-400'}`} />
+                </Button>
             </div>
-            <div className="mt-4 flex justify-between">
-                <div>
-                    <h3 className="text-sm font-medium text-gray-700">{book.title}</h3>
-                    <p className="mt-1 text-sm text-gray-500">{book.author}</p>
-                    {averageRating !== null && (
-                        <div className="flex items-center mt-1">
-                            {renderStars(averageRating)}
-                            <span className="ml-2 text-sm text-gray-500">{averageRating.toFixed(1)}</span>
-                        </div>
-                    )}
+            <div onClick={() => navigate(`/book/${book.id}`)}>
+                <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-md group-hover:opacity-75">
+                    <img
+                        src={bookImage ? `data:image/jpeg;base64,${bookImage}` : 'https://via.placeholder.com/250'}
+                        alt={`Обложка книги ${book.title}`}
+                        className="h-full w-full object-contain object-center"
+                    />
                 </div>
-                <p className="text-sm font-medium text-gray-900 whitespace-nowrap">{book.cost ? `${book.cost} р.` : 'Цена не указана'}</p>
+                <div className="mt-4 flex justify-between">
+                    <div>
+                        <h3 className="text-sm font-medium text-gray-700">{book.title}</h3>
+                        <p className="mt-1 text-sm text-gray-500">{book.author}</p>
+                        {averageRating !== null && (
+                            <div className="flex items-center mt-1">
+                                {renderStars(averageRating)}
+                                <span className="ml-2 text-sm text-gray-500">{averageRating.toFixed(1)}</span>
+                            </div>
+                        )}
+                    </div>
+                    <p className="text-sm font-medium text-gray-900 whitespace-nowrap">{book.cost ? `${book.cost} р.` : 'Цена не указана'}</p>
+                </div>
             </div>
         </div>
     );

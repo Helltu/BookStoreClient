@@ -1,18 +1,20 @@
 import React, {useEffect, useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {FaShoppingCart} from 'react-icons/fa';
-import {Bot} from 'lucide-react';
+import {Bot, Heart} from 'lucide-react';
 import logo from '@/assets/logo_dark.png';
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import Cart from '@/components/Cart';
 import {useSearch} from '@/api/SearchContext';
+import FavoritesSidebar from "@/components/FavoritesSidebar";
 
 const Navbar = ({isAssistantOpen, onToggleAssistant, onCloseAssistant}) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [isLogoVisible, setIsLogoVisible] = useState(true);
     const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
     const {searchTerm, setSearchTerm} = useSearch();
     const [inputValue, setInputValue] = useState(searchTerm);
     const userName = localStorage.getItem('userName') || 'Guest';
@@ -108,9 +110,13 @@ const Navbar = ({isAssistantOpen, onToggleAssistant, onCloseAssistant}) => {
                         />
                     </Button>
 
-                    <button onClick={handleOpenCart} className="text-gray-600 hover:text-gray-800 text-2xl">
+                    <Button variant="ghost" size="icon" onClick={() => setIsFavoritesOpen(true)}>
+                        <Heart className="text-gray-600 hover:text-gray-800"/>
+                    </Button>
+
+                    <Button variant="ghost" onClick={handleOpenCart} className="text-gray-600 hover:text-gray-800 text-2xl">
                         <FaShoppingCart/>
-                    </button>
+                    </Button>
 
                     {/* Иконка профиля */}
                     <button onClick={() => navigate('/profile')} className="flex items-center" style={{
@@ -136,6 +142,7 @@ const Navbar = ({isAssistantOpen, onToggleAssistant, onCloseAssistant}) => {
             </div>
 
             <Cart isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} userId={localStorage.getItem('userId')}/>
+            <FavoritesSidebar isOpen={isFavoritesOpen} onClose={() => setIsFavoritesOpen(false)} />
         </nav>
     );
 };

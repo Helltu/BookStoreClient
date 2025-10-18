@@ -15,6 +15,7 @@ import { setupAxiosInterceptors } from '@/api/axios';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
 import { SearchProvider } from '@/api/SearchContext';
+import { FavoritesProvider } from '@/api/FavoritesContext';
 import UserOrdersPage from '@/pages/UserOrdersPage';
 import DashboardPage from "@/pages/DashboardPage.jsx";
 
@@ -58,42 +59,52 @@ const App = () => {
         return null;
     }
 
+    const renderNavbar = () => {
+        if (isAuthPage || isErrorPage) {
+            return null;
+        }
+        if (isAdmin) {
+            return <AdminNavbar />;
+        }
+        return <Navbar isAssistantOpen={isAssistantOpen} onToggleAssistant={toggleAssistant} onCloseAssistant={closeAssistant} />;
+    };
+
     return (
-        <SearchProvider>
-            {!isAuthPage && !isErrorPage && (
-                isAdmin ? (
-                    <AdminNavbar />
-                ) : (
-                    <Navbar isAssistantOpen={isAssistantOpen} onToggleAssistant={toggleAssistant} onCloseAssistant={closeAssistant}/>
-                )
-            )}
-            <Routes>
-                <Route path="/login" element={<AuthPage />} />
-                <Route path="/" element={<BooksCatalogPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
+        <FavoritesProvider>
+            <SearchProvider>
+                <div className="flex min-h-screen w-full flex-col">
+                    {renderNavbar()}
+                    <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+                        <Routes>
+                            <Route path="/login" element={<AuthPage />} />
+                            <Route path="/" element={<BooksCatalogPage />} />
+                            <Route path="/profile" element={<ProfilePage />} />
 
-                {!isAdmin && (
-                    <>
-                        <Route path="/book/:id" element={<BookDetailsPage />} />
-                        <Route path="/user/orders" element={<UserOrdersPage />} />
-                    </>
-                )}
+                            {!isAdmin && (
+                                <>
+                                    <Route path="/book/:id" element={<BookDetailsPage />} />
+                                    <Route path="/user/orders" element={<UserOrdersPage />} />
+                                </>
+                            )}
 
-                {isAdmin && (
-                    <>
-                        <Route path="/book/:id" element={<AdminBookDetailsPage />} />
-                        <Route path="/admin/add-book" element={<AdminAddBookPage />} />
-                        <Route path="/admin/genres" element={<AdminGenresPage />} />
-                        <Route path="/admin/orders" element={<AdminOrdersPage />} />
-                        <Route path="/admin/dashboard" element={<DashboardPage />} />
-                    </>
-                )}
+                            {isAdmin && (
+                                <>
+                                    <Route path="/book/:id" element={<AdminBookDetailsPage />} />
+                                    <Route path="/admin/add-book" element={<AdminAddBookPage />} />
+                                    <Route path="/admin/genres" element={<AdminGenresPage />} />
+                                    <Route path="/admin/orders" element={<AdminOrdersPage />} />
+                                    <Route path="/admin/dashboard" element={<DashboardPage />} />
+                                </>
+                            )}
 
-                <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-            <Toaster />
-            <AssistantSidebar isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
-        </SearchProvider>
+                            <Route path="*" element={<Navigate to="/" />} />
+                        </Routes>
+                    </main>
+                    <Toaster />
+                    <AssistantSidebar isOpen={isAssistantOpen} onClose={() => setIsAssistantOpen(false)} />
+                </div>
+            </SearchProvider>
+        </FavoritesProvider>
     );
 };
 
