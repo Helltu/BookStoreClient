@@ -284,7 +284,7 @@ const BooksCatalogPage = () => {
 
     if (isLoading) {
         return (
-            <div className="p-8 max-w-7xl mx-auto">
+            <div className="p-8 max-w-7xl mx-auto w-full">
                 <div className="flex items-baseline justify-between border-b border-gray-200 pb-4">
                     <h1 className="text-3xl font-bold">Каталог книг</h1>
                     <div className="flex items-center space-x-4">
@@ -329,8 +329,8 @@ const BooksCatalogPage = () => {
                         </Select>
                     </div>
                 </div>
-                <section className="pb-16 pt-6">
-                    <div className="text-gray-600 text-center">Загрузка...</div>
+                <section className="pb-16 pt-6 w-full">
+                    <div className="text-gray-600 text-center w-full">Загрузка...</div>
                 </section>
             </div>
         );
@@ -574,7 +574,10 @@ const BooksCatalogPage = () => {
                     {books.length > 0 ? (
                         books.map((book) => <BookCard key={book.id} book={book}/>)
                     ) : (
-                        <div className="text-gray-600 text-center col-span-full">Книги не найдены</div>
+                        <div className="text-gray-600 text-center col-span-full self-center">
+                            <h2 className="text-2xl font-bold">Книги не найдены</h2>
+                            <p className="mt-2">Попробуйте изменить фильтры или сбросить их.</p>
+                        </div>
                     )}
                 </div>
             </section>
