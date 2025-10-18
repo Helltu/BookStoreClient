@@ -5,7 +5,7 @@ import {Input} from '@/components/ui/input';
 import {Badge} from '@/components/ui/badge';
 import {Textarea} from '@/components/ui/textarea';
 import {Star} from 'lucide-react';
-import axiosInstance from '../api/axios';
+import axiosInstance from '@/api/axios';
 import {useToast} from '@/hooks/use-toast';
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter} from '@/components/ui/dialog';
 import {Select, SelectTrigger, SelectValue, SelectContent, SelectItem} from '@/components/ui/select';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axiosInstance from '../api/axios';
+import axiosInstance from '@/api/axios';
 import { Star } from 'lucide-react';
 
 const BookCard = ({ book }) => {

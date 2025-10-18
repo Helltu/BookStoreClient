@@ -1,4 +1,4 @@
-import axios from './axios';
+import axios from '@/api/axios';
 
 export const login = async (credentials) => {
     const response = await axios.get('/general/login', {

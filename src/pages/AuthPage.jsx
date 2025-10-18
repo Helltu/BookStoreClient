@@ -14,9 +14,9 @@ import {
     FormLabel,
     FormMessage,
 } from "@/components/ui/form";
-import logo from "../assets/logo_dark.png";
+import logo from "@/assets/logo_dark.png";
 
-import { login, register } from "../api/auth";
+import { login, register } from "@/api/auth";
 
 const registrationSchema = z.object({
     email: z

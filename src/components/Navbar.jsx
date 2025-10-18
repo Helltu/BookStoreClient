@@ -2,11 +2,11 @@ import React, {useEffect, useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {FaShoppingCart} from 'react-icons/fa';
 import {Bot} from 'lucide-react';
-import logo from '../assets/logo_dark.png';
+import logo from '@/assets/logo_dark.png';
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
-import Cart from './Cart';
-import {useSearch} from '../api/SearchContext';
+import Cart from '@/components/Cart';
+import {useSearch} from '@/api/SearchContext';
 
 const Navbar = ({isAssistantOpen, onToggleAssistant, onCloseAssistant}) => {
     const navigate = useNavigate();

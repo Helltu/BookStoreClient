@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
-import logo from '../assets/logo_dark.png';
+import logo from '@/assets/logo_dark.png';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {useSearch} from "@/api/SearchContext.jsx";

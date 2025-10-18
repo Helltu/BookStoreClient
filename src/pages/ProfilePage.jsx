@@ -15,7 +15,7 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import axiosInstance from "../api/axios";
+import axiosInstance from "@/api/axios";
 
 const profileSchema = z
     .object({

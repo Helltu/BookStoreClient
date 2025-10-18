@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {ru} from 'date-fns/locale';
-import axiosInstance from '../api/axios';
+import axiosInstance from '@/api/axios';
 import {
     Bar,
     BarChart,

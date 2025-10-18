@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import axiosInstance from '../api/axios';
+import axiosInstance from '@/api/axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableRow, TableCell, TableHead, TableHeader, TableBody } from '@/components/ui/table';

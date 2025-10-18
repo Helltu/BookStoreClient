@@ -1,8 +1,8 @@
 import React, {useState, useEffect} from 'react';
 import {Sheet, SheetContent, SheetHeader, SheetTitle} from '@/components/ui/sheet';
 import {Button} from '@/components/ui/button';
-import axiosInstance from '../api/axios';
-import CartBookItem from './CartBookItem';
+import axiosInstance from '@/api/axios';
+import CartBookItem from '@/components/CartBookItem';
 import {useToast} from '@/hooks/use-toast';
 import {useForm} from 'react-hook-form';
 import {zodResolver} from "@hookform/resolvers/zod";

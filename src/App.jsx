@@ -1,22 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import AuthPage from './pages/AuthPage';
-import BooksCatalogPage from './pages/BooksCatalogPage';
-import BookDetailsPage from './pages/BookDetailsPage';
-import AdminBookDetailsPage from './pages/AdminBookDetailsPage';
-import AdminAddBookPage from './pages/AdminAddBookPage';
-import ProfilePage from './pages/ProfilePage';
-import Navbar from './components/Navbar';
-import AdminNavbar from './components/AdminNavbar';
-import AdminGenresPage from './pages/AdminGenresPage';
-import AdminOrdersPage from './pages/AdminOrdersPage';
-import AssistantSidebar from "./components/AssistantSidebar.jsx";
-import { setupAxiosInterceptors } from './api/axios';
+import AuthPage from '@/pages/AuthPage';
+import BooksCatalogPage from '@/pages/BooksCatalogPage';
+import BookDetailsPage from '@/pages/BookDetailsPage';
+import AdminBookDetailsPage from '@/pages/AdminBookDetailsPage';
+import AdminAddBookPage from '@/pages/AdminAddBookPage';
+import ProfilePage from '@/pages/ProfilePage';
+import Navbar from '@/components/Navbar';
+import AdminNavbar from '@/components/AdminNavbar';
+import AdminGenresPage from '@/pages/AdminGenresPage';
+import AdminOrdersPage from '@/pages/AdminOrdersPage';
+import AssistantSidebar from "@/components/AssistantSidebar.jsx";
+import { setupAxiosInterceptors } from '@/api/axios';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/hooks/use-toast';
-import { SearchProvider } from './api/SearchContext';
-import UserOrdersPage from './pages/UserOrdersPage';
-import DashboardPage from "./pages/DashboardPage.jsx";
+import { SearchProvider } from '@/api/SearchContext';
+import UserOrdersPage from '@/pages/UserOrdersPage';
+import DashboardPage from "@/pages/DashboardPage.jsx";
 
 const App = () => {
     const { toast } = useToast();

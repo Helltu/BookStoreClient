@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useCallback, useReducer} from 'react';
 import {useNavigate} from 'react-router-dom';
-import axiosInstance from '../api/axios';
-import BookCard from '../components/BookCard';
+import axiosInstance from '@/api/axios';
+import BookCard from '@/components/BookCard';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Checkbox} from '@/components/ui/checkbox';
@@ -29,7 +29,7 @@ import {
 import {FunnelIcon, PlusIcon} from '@heroicons/react/24/solid';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {useToast} from '@/hooks/use-toast';
-import {useSearch} from '../api/SearchContext';
+import {useSearch} from '@/api/SearchContext';
 
 const sortOptions = [
     {name: 'Популярности', value: 'popularity_desc'},
