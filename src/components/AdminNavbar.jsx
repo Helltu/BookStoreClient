@@ -1,25 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import {useLocation, useNavigate} from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import logo from '@/assets/logo_dark.png';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {useSearch} from "@/api/SearchContext.jsx";
-import {FaShoppingCart} from "react-icons/fa";
 
 const AdminNavbar = () => {
     const navigate = useNavigate()
-    const location = useLocation();
     const [isLogoVisible, setIsLogoVisible] = useState(true);
     const { searchTerm, setSearchTerm } = useSearch();
     const [inputValue, setInputValue] = useState(searchTerm);
     const userName = localStorage.getItem('userName') || 'Guest';
     const profileImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}`;
 
+    // Синхронизируем локальное значение инпута с контекстом поиска
     useEffect(() => {
-        if(location.pathname === "/")
-            return;
-        setInputValue('')
-    }, [location.pathname]);
+        setInputValue(searchTerm || '');
+    }, [searchTerm]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -51,7 +48,7 @@ const AdminNavbar = () => {
     const handleSearchKeyDown = (e) => {
         if (e.key === 'Enter' && inputValue.trim() !== '') {
             setSearchTerm(inputValue.trim());
-            navigate(`/`);
+            navigate(`/books`);
         }
     };
 

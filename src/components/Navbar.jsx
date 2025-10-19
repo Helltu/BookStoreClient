@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {useLocation, useNavigate} from 'react-router-dom';
+import {useNavigate} from 'react-router-dom';
 import {FaShoppingCart} from 'react-icons/fa';
 import {Bot, Heart} from 'lucide-react';
 import logo from '@/assets/logo_dark.png';
@@ -11,7 +11,6 @@ import FavoritesSidebar from "@/components/FavoritesSidebar";
 
 const Navbar = ({isAssistantOpen, onToggleAssistant, onCloseAssistant}) => {
     const navigate = useNavigate();
-    const location = useLocation();
     const [isLogoVisible, setIsLogoVisible] = useState(true);
     const [isCartOpen, setIsCartOpen] = useState(false);
     const [isFavoritesOpen, setIsFavoritesOpen] = useState(false);
@@ -21,10 +20,8 @@ const Navbar = ({isAssistantOpen, onToggleAssistant, onCloseAssistant}) => {
     const profileImageUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}`;
 
     useEffect(() => {
-        if (location.pathname === "/")
-            return;
-        setInputValue('');
-    }, [location.pathname]);
+        setInputValue(searchTerm || '');
+    }, [searchTerm]);
 
     useEffect(() => {
         const handleResize = () => {
@@ -56,7 +53,7 @@ const Navbar = ({isAssistantOpen, onToggleAssistant, onCloseAssistant}) => {
     const handleSearchKeyDown = (e) => {
         if (e.key === 'Enter' && inputValue.trim() !== '') {
             setSearchTerm(inputValue.trim());
-            navigate(`/`);
+            navigate('/books');
         }
     };
 
