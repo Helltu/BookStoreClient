@@ -1,50 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { ShoppingCart, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Heart, ShoppingCart } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useCartStore } from "@/store/useCartStore";
+import { toast } from "sonner";
 
 interface BookActionsProps {
   bookId: string;
+  title: string;
   price: number;
+  coverUrl?: string;
 }
 
-export function BookActions({ bookId, price }: BookActionsProps) {
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [isAddedToCart, setIsAddedToCart] = useState(false);
+export function BookActions({ bookId, title, price, coverUrl }: BookActionsProps) {
+  const { items, addItem } = useCartStore();
+  const [mounted, setMounted] = useState(false);
 
-  const toggleFavorite = () => setIsFavorite(!isFavorite);
-  
-  const addToCart = () => {
-    // В будущем здесь будет логика добавления в корзину через API
-    setIsAddedToCart(true);
-    setTimeout(() => setIsAddedToCart(false), 2000); // Имитация успешного добавления
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isInCart = items.some((item) => item.bookId === bookId);
+
+  const handleAddToCart = () => {
+    addItem({ bookId, title, price, coverUrl });
+    toast.success(`Книга "${title}" добавлена в корзину!`);
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 mt-6">
-      <Button 
-        size="lg" 
-        className="flex-1 md:flex-none md:w-64"
-        onClick={addToCart}
-        variant={isAddedToCart ? "secondary" : "default"}
-      >
-        <ShoppingCart className="mr-2 h-5 w-5" />
-        {isAddedToCart ? "Добавлено в корзину" : `В корзину за ${price.toFixed(2)} BYN`}
-      </Button>
-      
-      <Button 
-        size="lg" 
-        variant="outline" 
-        className="flex-1 sm:flex-none"
-        onClick={toggleFavorite}
-      >
-        <Heart 
-          className={cn("mr-2 h-5 w-5 transition-colors", isFavorite ? "fill-red-500 text-red-500" : "")} 
-        />
-        {isFavorite ? "В избранном" : "В избранное"}
-      </Button>
+    <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
+      <div className="text-3xl font-bold">{price.toFixed(2)} BYN</div>
+      {mounted && isInCart ? (
+        <Button asChild variant="secondary" size="lg" className="sm:ml-auto w-full sm:w-auto bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+          <Link href="/cart">
+            <Check className="mr-2 h-5 w-5" />
+            В корзине
+          </Link>
+        </Button>
+      ) : (
+        <Button onClick={handleAddToCart} size="lg" className="sm:ml-auto w-full sm:w-auto">
+          <ShoppingCart className="mr-2 h-5 w-5" />
+          В корзину
+        </Button>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { BookOpen, ShoppingCart, User, LogOut, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
+import { useCartStore } from "@/store/useCartStore";
 
 function SearchBar() {
   const router = useRouter();
@@ -46,6 +47,11 @@ function SearchBar() {
 export function Navbar() {
   const { isAuthenticated, logout, user } = useAuthStore();
   const router = useRouter();
+  
+  const items = useCartStore((state) => state.items);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   const handleLogout = () => {
     logout();
@@ -82,17 +88,22 @@ export function Navbar() {
           {/* Правая часть: Действия пользователя */}
           <div className="flex items-center justify-end space-x-2 sm:space-x-4">
             <nav className="flex items-center space-x-1 sm:space-x-2">
+              <Link href="/cart">
+                <Button variant="ghost" size="icon" className="relative mr-1">
+                  <ShoppingCart className="h-5 w-5" />
+                  {mounted && items.length > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                      {items.reduce((acc, item) => acc + item.quantity, 0)}
+                    </span>
+                  )}
+                  <span className="sr-only">Корзина</span>
+                </Button>
+              </Link>
               {isAuthenticated ? (
                   <>
                  <span className="hidden sm:inline-block text-sm font-medium text-muted-foreground mr-2">
                    Привет, {user?.firstName || user?.username}
                  </span>
-                    <Link href="/cart">
-                      <Button variant="ghost" size="icon" className="relative">
-                        <ShoppingCart className="h-5 w-5" />
-                        <span className="sr-only">Корзина</span>
-                      </Button>
-                    </Link>
                     <Link href="/profile">
                       <Button variant="ghost" size="icon">
                         <User className="h-5 w-5" />

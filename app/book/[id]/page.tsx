@@ -129,7 +129,12 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
             <Separator className="mb-6" />
 
             {/* Клиентский компонент кнопок */}
-            <BookActions bookId={book.id} price={book.price} />
+            <BookActions 
+              bookId={book.id} 
+              title={book.title} 
+              price={book.price} 
+              coverUrl={book.coverUrl} 
+            />
 
             <div className="mt-8">
               <h3 className="text-lg font-semibold mb-3">О книге</h3>

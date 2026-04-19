@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Star, Heart } from "lucide-react";
+import { Star, Heart, ShoppingCart, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCartStore } from "@/store/useCartStore";
+import { toast } from "sonner";
 
 export interface Book {
   id: string;
@@ -19,10 +21,29 @@ export interface Book {
 
 export function BookCard({ book }: { book: Book }) {
   const [isFavorite, setIsFavorite] = useState(false);
+  const { items, addItem } = useCartStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isInCart = items.some((item) => item.bookId === book.id);
 
   const toggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault(); // Предотвращаем переход на страницу книги
     setIsFavorite(!isFavorite);
+  };
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    addItem({
+      bookId: book.id,
+      title: book.title,
+      price: book.price,
+      coverUrl: book.coverUrl,
+    });
+    toast.success(`Книга "${book.title}" добавлена в корзину!`);
   };
 
   return (
@@ -78,9 +99,19 @@ export function BookCard({ book }: { book: Book }) {
 
         <div className="mt-auto pt-4 flex items-center justify-between">
           <span className="text-lg font-bold">{book.price ? `${book.price.toFixed(2)} BYN` : "Бесплатно"}</span>
-          <Button size="sm" className="relative z-20" onClick={(e) => e.preventDefault()}>
-            В корзину
-          </Button>
+          {mounted && isInCart ? (
+            <Button asChild variant="secondary" size="sm" className="relative z-20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+              <Link href="/cart">
+                <Check className="mr-1.5 h-4 w-4" />
+                В корзине
+              </Link>
+            </Button>
+          ) : (
+            <Button size="sm" className="relative z-20" onClick={handleAddToCart}>
+              <ShoppingCart className="mr-1.5 h-4 w-4" />
+              В корзину
+            </Button>
+          )}
         </div>
       </div>
     </div>
