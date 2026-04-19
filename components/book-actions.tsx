@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { ShoppingCart, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/useCartStore";
@@ -15,7 +14,7 @@ interface BookActionsProps {
 }
 
 export function BookActions({ bookId, title, price, coverUrl }: BookActionsProps) {
-  const { items, addItem } = useCartStore();
+  const { items, addItem, removeItem } = useCartStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -29,22 +28,24 @@ export function BookActions({ bookId, title, price, coverUrl }: BookActionsProps
     toast.success(`Книга "${title}" добавлена в корзину!`);
   };
 
+  const handleRemoveFromCart = () => {
+    removeItem(bookId);
+    toast.info(`Книга "${title}" удалена из корзины.`);
+  };
+
+  if (mounted && isInCart) {
+    return (
+        <Button onClick={handleRemoveFromCart} variant="secondary" size="lg" className="w-full sm:w-auto bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+          <Check className="mr-2 h-5 w-5" />
+          В корзине
+        </Button>
+    );
+  }
+
   return (
-    <div className="flex flex-col sm:flex-row items-center gap-4 mb-6">
-      <div className="text-3xl font-bold">{price.toFixed(2)} BYN</div>
-      {mounted && isInCart ? (
-        <Button asChild variant="secondary" size="lg" className="sm:ml-auto w-full sm:w-auto bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-          <Link href="/cart">
-            <Check className="mr-2 h-5 w-5" />
-            В корзине
-          </Link>
-        </Button>
-      ) : (
-        <Button onClick={handleAddToCart} size="lg" className="sm:ml-auto w-full sm:w-auto">
-          <ShoppingCart className="mr-2 h-5 w-5" />
-          В корзину
-        </Button>
-      )}
-    </div>
+      <Button onClick={handleAddToCart} size="lg" className="w-full sm:w-auto">
+        <ShoppingCart className="mr-2 h-5 w-5" />
+        В корзину
+      </Button>
   );
 }

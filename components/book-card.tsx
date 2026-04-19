@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Star, Heart, ShoppingCart, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartStore } from "@/store/useCartStore";
+import { useAuthStore } from "@/store/useAuthStore";
+import { FavoriteButton } from "@/components/favorite-button";
 import { toast } from "sonner";
 
 export interface Book {
@@ -20,30 +23,36 @@ export interface Book {
 }
 
 export function BookCard({ book }: { book: Book }) {
-  const [isFavorite, setIsFavorite] = useState(false);
-  const { items, addItem } = useCartStore();
+  const router = useRouter();
+  const { items: cartItems, addItem: addCartItem } = useCartStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const isInCart = items.some((item) => item.bookId === book.id);
+  const isInCart = cartItems.some((item) => item.bookId === book.id);
 
-  const toggleFavorite = (e: React.MouseEvent) => {
-    e.preventDefault(); // Предотвращаем переход на страницу книги
-    setIsFavorite(!isFavorite);
+  const requireAuth = (action: () => void) => {
+    if (!isAuthenticated) {
+      toast.error("Требуется авторизация", {
+        description: "Пожалуйста, войдите в аккаунт или зарегистрируйтесь для этого действия."
+      });
+      // Укажите правильный путь на страницу входа
+      router.push("/login");
+      return;
+    }
+    action();
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    addItem({
-      bookId: book.id,
-      title: book.title,
-      price: book.price,
-      coverUrl: book.coverUrl,
+    requireAuth(() => {
+      addCartItem({ bookId: book.id, title: book.title, price: book.price, coverUrl: book.coverUrl });
+      toast.success(`Книга "${book.title}" добавлена в корзину!`);
     });
-    toast.success(`Книга "${book.title}" добавлена в корзину!`);
   };
 
   return (
@@ -52,19 +61,7 @@ export function BookCard({ book }: { book: Book }) {
         <span className="sr-only">Открыть {book.title}</span>
       </Link>
       
-      {/* Кнопка "В избранное" */}
-      <Button
-        variant="secondary"
-        size="icon"
-        className={cn(
-          "absolute right-2 top-2 z-20 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm transition-opacity hover:bg-background sm:opacity-0 sm:group-hover:opacity-100",
-          isFavorite && "opacity-100 sm:opacity-100"
-        )}
-        onClick={toggleFavorite}
-      >
-        <Heart className={cn("h-4 w-4 transition-colors", isFavorite ? "fill-red-500 text-red-500" : "text-foreground")} />
-        <span className="sr-only">В избранное</span>
-      </Button>
+      <FavoriteButton book={book} variant="card" />
 
       {/* Обложка книги с фиксированной высотой */}
       <div className="h-72 w-full overflow-hidden bg-muted">
