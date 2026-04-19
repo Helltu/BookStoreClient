@@ -2,7 +2,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8080/api',
+  baseURL: '/api', // Теперь запросы идут через Next.js rewrites
   headers: {
     'Content-Type': 'application/json',
   },

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { BookOpen, X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -118,10 +118,13 @@ export function BookGallery({ coverUrl, previewUrls = [], title }: BookGalleryPr
 
       {/* ЧАСТЬ 2: Интерактивный Lightbox (Оверлей) */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex flex-col md:flex-row backdrop-blur-sm">
+        <div 
+          className="fixed inset-0 z-50 bg-black/50 flex flex-col md:flex-row backdrop-blur-sm"
+          onClick={closeLightbox}
+        >
           {/* Кнопка "Закрыть" */}
           <button 
-            onClick={closeLightbox} 
+            onClick={(e) => { e.stopPropagation(); closeLightbox(); }} 
             className="absolute top-4 right-4 z-[60] p-2 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full"
             aria-label="Закрыть галерею"
           >
@@ -129,7 +132,10 @@ export function BookGallery({ coverUrl, previewUrls = [], title }: BookGalleryPr
           </button>
 
           {/* Левая боковая панель (только десктоп) */}
-          <div className="hidden md:flex flex-col w-[120px] lg:w-[150px] p-4 gap-3 overflow-y-auto border-r border-white/10 shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          <div 
+            className="hidden md:flex flex-col w-[120px] lg:w-[150px] p-4 gap-3 overflow-y-auto border-r border-white/10 shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            onClick={(e) => e.stopPropagation()}
+          >
             {allImages.map((url, idx) => (
               <button
                 key={url + idx}
@@ -147,7 +153,9 @@ export function BookGallery({ coverUrl, previewUrls = [], title }: BookGalleryPr
           </div>
 
           {/* Основная область */}
-          <div className="flex-1 relative flex items-center justify-center p-4">
+          <div 
+            className="flex-1 relative flex items-center justify-center p-4"
+          >
             <img 
               src={allImages[currentIndex]} 
               alt={`Изображение ${currentIndex + 1} книги ${title}`} 
@@ -175,7 +183,10 @@ export function BookGallery({ coverUrl, previewUrls = [], title }: BookGalleryPr
             )}
 
             {/* Счетчик */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/80 text-sm bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-md font-medium tracking-wide">
+            <div 
+              className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/80 text-sm bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-md font-medium tracking-wide"
+              onClick={(e) => e.stopPropagation()}
+            >
               {currentIndex + 1} / {allImages.length}
             </div>
           </div>

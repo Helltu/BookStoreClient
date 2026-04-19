@@ -16,6 +16,7 @@ export default function LoginPage() {
     username: "",
     password: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,7 +56,7 @@ export default function LoginPage() {
           <div className="space-y-2">
             <label className="text-sm font-medium leading-none">Пароль</label>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
               placeholder="••••••••"
               value={formData.password}
@@ -63,6 +64,20 @@ export default function LoginPage() {
               required
             />
           </div>
+
+          <div className="flex items-center space-x-2 pt-1">
+            <input
+              type="checkbox"
+              id="showPassword"
+              checked={showPassword}
+              onChange={(e) => setShowPassword(e.target.checked)}
+              className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
+            />
+            <label htmlFor="showPassword" className="text-sm font-medium leading-none cursor-pointer">
+              Показать пароль
+            </label>
+          </div>
+
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? "Вход..." : "Войти"}
           </Button>
