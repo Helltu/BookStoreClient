@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/navbar";
 import { cn } from "@/lib/utils";
+import { Toaster } from "sonner";
+import { AuthProvider } from "@/components/auth-provider";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -30,10 +32,13 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className={cn("min-h-screen bg-background font-sans antialiased flex flex-col", geistSans.variable, geistMono.variable)}>
-        <Navbar />
-        <main className="flex-1">
-          {children}
-        </main>
+        <AuthProvider>
+          <Navbar />
+          <main className="flex-1">
+            {children}
+          </main>
+          <Toaster richColors position="top-right" />
+        </AuthProvider>
       </body>
     </html>
   );
