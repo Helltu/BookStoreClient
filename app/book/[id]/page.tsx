@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Star, ChevronRight, BookOpen, Hash, Calendar, Building, Globe, User } from "lucide-react";
 import { BookActions } from "@/components/book-actions";
 import { FavoriteButton } from "@/components/favorite-button";
+import { BookGallery } from "@/components/book-gallery";
 import { cn } from "@/lib/utils";
 
 // Расширенный интерфейс для детальной информации о книге
@@ -21,6 +22,7 @@ interface BookDetail {
   price: number;
   authors: string[];
   coverUrl?: string;
+  previewUrls?: string[];
   averageRating?: number;
   totalReviews?: number;
   publisher?: string;
@@ -72,20 +74,7 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
 
           {/* Левая колонка: Обложка */}
           <div className="md:col-span-5 lg:col-span-4 flex flex-col gap-6">
-            <div className="aspect-[2/3] w-full overflow-hidden rounded-2xl border bg-muted shadow-xl relative group">
-              {book.coverUrl ? (
-                <img
-                  src={book.coverUrl}
-                  alt={`Обложка книги ${book.title}`}
-                  className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-full flex-col items-center justify-center text-muted-foreground gap-4 bg-secondary/20">
-                  <BookOpen className="h-16 w-16 opacity-20" />
-                  <span>Нет обложки</span>
-                </div>
-              )}
-            </div>
+            <BookGallery coverUrl={book.coverUrl} previewUrls={book.previewUrls} title={book.title} />
           </div>
 
           {/* Правая колонка: Детали */}
@@ -113,7 +102,7 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
                   ))}
                 </div>
                 <span className="font-semibold text-sm ml-1">{book.averageRating?.toFixed(1) || "0.0"}</span>
-              </div>D
+              </div>
               <span className="text-sm text-muted-foreground">
                 {book.totalReviews ? `${book.totalReviews} отзывов` : "Нет отзывов"}
               </span>
