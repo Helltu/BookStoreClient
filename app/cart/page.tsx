@@ -48,9 +48,9 @@ export default function CartPage() {
           {items.map((item) => (
             <div key={item.bookId} className="flex flex-col sm:flex-row items-center gap-4 p-4 border rounded-xl bg-card shadow-sm">
               {item.coverUrl ? (
-                <img src={item.coverUrl} alt={item.title} className="h-24 w-16 object-cover rounded-md border" />
+                <img src={item.coverUrl} alt={item.title} className="h-24 w-20 object-cover rounded-md border" />
               ) : (
-                <div className="h-24 w-16 bg-muted rounded-md border flex items-center justify-center text-[10px] text-muted-foreground text-center">Нет фото</div>
+                <div className="h-24 w-20 bg-muted rounded-md border flex items-center justify-center text-[10px] text-muted-foreground text-center">Нет фото</div>
               )}
               
               <div className="flex-1 flex flex-col items-center sm:items-start text-center sm:text-left w-full">

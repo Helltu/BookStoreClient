@@ -66,8 +66,8 @@ export function BookCard({ book }: { book: Book }) {
         <span className="sr-only">В избранное</span>
       </Button>
 
-      {/* Обложка книги с пропорцией 2:3 */}
-      <div className="aspect-[2/3] w-full overflow-hidden bg-muted">
+      {/* Обложка книги с фиксированной высотой */}
+      <div className="h-72 w-full overflow-hidden bg-muted">
         {book.coverUrl ? (
           <img
             src={book.coverUrl}

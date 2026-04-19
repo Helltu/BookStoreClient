@@ -72,7 +72,7 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
           
           {/* Левая колонка: Обложка */}
           <div className="md:col-span-4 lg:col-span-3">
-            <div className="aspect-[2/3] w-full overflow-hidden rounded-xl border bg-muted shadow-lg">
+            <div className="aspect-[4/5] w-full overflow-hidden rounded-xl border bg-muted shadow-lg">
               {book.coverUrl ? (
                 <img
                   src={book.coverUrl}
