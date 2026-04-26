@@ -22,13 +22,15 @@ interface FavoriteButtonProps {
 
 export function FavoriteButton({ book, variant = "default", className }: FavoriteButtonProps) {
   const router = useRouter();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isAuthenticated, user } = useAuthStore();
   const { items, addItem, removeItem } = useFavoriteStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  if (user?.role === "MANAGER") return null;
 
   const isFavorite = items.some((item) => item.bookId === book.id);
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BookOpen, ShoppingCart, User, LogOut, Search } from "lucide-react";
+import { BookOpen, ShoppingCart, User, LogOut, Search, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
@@ -47,7 +47,8 @@ function SearchBar() {
 export function Navbar() {
   const { isAuthenticated, logout, user } = useAuthStore();
   const router = useRouter();
-  
+  const isManager = user?.role === 'MANAGER';
+
   const items = useCartStore((state) => state.items);
   const [mounted, setMounted] = useState(false);
 
@@ -88,28 +89,41 @@ export function Navbar() {
           {/* Правая часть: Действия пользователя */}
           <div className="flex items-center justify-end space-x-2 sm:space-x-4">
             <nav className="flex items-center space-x-1 sm:space-x-2">
-              <Link href="/cart">
-                <Button variant="ghost" size="icon" className="relative mr-1">
-                  <ShoppingCart className="h-5 w-5" />
-                  {mounted && items.length > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                      {items.reduce((acc, item) => acc + item.quantity, 0)}
-                    </span>
-                  )}
-                  <span className="sr-only">Корзина</span>
-                </Button>
-              </Link>
+              {!isManager && (
+                <Link href="/cart">
+                  <Button variant="ghost" size="icon" className="relative mr-1">
+                    <ShoppingCart className="h-5 w-5" />
+                    {mounted && items.length > 0 && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                        {items.reduce((acc, item) => acc + item.quantity, 0)}
+                      </span>
+                    )}
+                    <span className="sr-only">Корзина</span>
+                  </Button>
+                </Link>
+              )}
               {isAuthenticated ? (
                   <>
-                 <span className="hidden sm:inline-block text-sm font-medium text-muted-foreground mr-2">
-                   Привет, {user?.firstName || user?.username}
-                 </span>
-                    <Link href="/profile">
-                      <Button variant="ghost" size="icon">
-                        <User className="h-5 w-5" />
-                        <span className="sr-only">Профиль</span>
-                      </Button>
-                    </Link>
+                    {isManager ? (
+                      <Link href="/manager">
+                        <Button variant="ghost" size="sm" className="gap-2">
+                          <Settings className="h-4 w-4" />
+                          <span className="hidden sm:inline">Управление</span>
+                        </Button>
+                      </Link>
+                    ) : (
+                      <>
+                        <span className="hidden sm:inline-block text-sm font-medium text-muted-foreground mr-2">
+                          Привет, {user?.firstName || user?.username}
+                        </span>
+                        <Link href="/profile">
+                          <Button variant="ghost" size="icon">
+                            <User className="h-5 w-5" />
+                            <span className="sr-only">Профиль</span>
+                          </Button>
+                        </Link>
+                      </>
+                    )}
                     <Button variant="ghost" size="icon" onClick={handleLogout} title="Выйти">
                       <LogOut className="h-5 w-5 text-muted-foreground hover:text-destructive transition-colors" />
                       <span className="sr-only">Выйти</span>

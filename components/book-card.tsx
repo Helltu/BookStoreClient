@@ -25,7 +25,8 @@ export interface Book {
 export function BookCard({ book }: { book: Book }) {
   const router = useRouter();
   const { items: cartItems, addItem: addCartItem } = useCartStore();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isAuthenticated, user } = useAuthStore();
+  const isManager = user?.role === "MANAGER";
 
   const [mounted, setMounted] = useState(false);
 
@@ -61,7 +62,7 @@ export function BookCard({ book }: { book: Book }) {
         <span className="sr-only">Открыть {book.title}</span>
       </Link>
       
-      <FavoriteButton book={book} variant="card" />
+      {!isManager && <FavoriteButton book={book} variant="card" />}
 
       {/* Обложка книги с фиксированной высотой */}
       <div className="h-72 w-full overflow-hidden bg-muted">
@@ -96,18 +97,20 @@ export function BookCard({ book }: { book: Book }) {
 
         <div className="mt-auto pt-4 flex items-center justify-between">
           <span className="text-lg font-bold">{book.price ? `${book.price.toFixed(2)} BYN` : "Бесплатно"}</span>
-          {mounted && isInCart ? (
-            <Button asChild variant="secondary" size="sm" className="relative z-20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-              <Link href="/cart">
-                <Check className="mr-1.5 h-4 w-4" />
-                В корзине
-              </Link>
-            </Button>
-          ) : (
-            <Button size="sm" className="relative z-20" onClick={handleAddToCart}>
-              <ShoppingCart className="mr-1.5 h-4 w-4" />
-              В корзину
-            </Button>
+          {!isManager && (
+            mounted && isInCart ? (
+              <Button asChild variant="secondary" size="sm" className="relative z-20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
+                <Link href="/cart">
+                  <Check className="mr-1.5 h-4 w-4" />
+                  В корзине
+                </Link>
+              </Button>
+            ) : (
+              <Button size="sm" className="relative z-20" onClick={handleAddToCart}>
+                <ShoppingCart className="mr-1.5 h-4 w-4" />
+                В корзину
+              </Button>
+            )
           )}
         </div>
       </div>

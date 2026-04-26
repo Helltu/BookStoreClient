@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { ShoppingCart, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/useCartStore";
+import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "sonner";
 
 interface BookActionsProps {
@@ -15,11 +16,14 @@ interface BookActionsProps {
 
 export function BookActions({ bookId, title, price, coverUrl }: BookActionsProps) {
   const { items, addItem, removeItem } = useCartStore();
+  const user = useAuthStore((state) => state.user);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  if (user?.role === "MANAGER") return null;
 
   const isInCart = items.some((item) => item.bookId === bookId);
 

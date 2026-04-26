@@ -26,7 +26,13 @@ export default function LoginPage() {
       const res = await apiClient.post("/auth/authenticate", formData);
       login(res.data.token);
       toast.success("Вы успешно вошли в систему!");
-      router.push("/");
+
+      const profileRes = await apiClient.get("/users/me");
+      if (profileRes.data.role === "MANAGER") {
+        router.push("/manager");
+      } else {
+        router.push("/");
+      }
     } catch (error) {
       // Ошибка уже выводится глобальным перехватчиком (interceptor) в axios.ts
     } finally {
