@@ -55,9 +55,10 @@ export const publishersApi = {
 
 // Books (multipart/form-data for create/update)
 export const booksApi = {
-  getAll: (page: number, size: number, query?: string) => {
+  getAll: (page: number, size: number, query?: string, inStock?: boolean) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (query) params.set('query', query);
+    if (inStock !== undefined) params.set('inStock', String(inStock));
     return apiClient.get<PageResponse<ManagedBook>>(`/catalog/search?${params}`);
   },
   getById: (id: string) => apiClient.get<ManagedBook>(`/catalog/books/${id}`),
@@ -67,7 +68,7 @@ export const booksApi = {
     fd.append('description', data.description);
     fd.append('isbn', data.isbn);
     fd.append('price', String(data.price));
-    fd.append('stock', String(data.stock));
+    fd.append('stock', String(data.stockQuantity));
     data.authorIds.forEach((id) => fd.append('authorIds', id));
     data.genreIds.forEach((id) => fd.append('genreIds', id));
     if (data.publisherId) fd.append('publisherId', data.publisherId);
@@ -82,7 +83,7 @@ export const booksApi = {
     fd.append('description', data.description);
     fd.append('isbn', data.isbn);
     fd.append('price', String(data.price));
-    fd.append('stock', String(data.stock));
+    fd.append('stock', String(data.stockQuantity));
     data.authorIds.forEach((aid) => fd.append('authorIds', aid));
     data.genreIds.forEach((gid) => fd.append('genreIds', gid));
     if (data.publisherId) fd.append('publisherId', data.publisherId);
@@ -91,5 +92,9 @@ export const booksApi = {
     data.previewFiles.forEach((file) => fd.append('previewFiles', file));
     return apiClient.put<void>(`/catalog/books/${id}`, fd, multipartConfig());
   },
+  adjustStock: (id: string, stockQuantity: number) =>
+    apiClient.patch<void>(`/catalog/books/${id}/stock`, { quantity: stockQuantity }),
   delete: (id: string) => apiClient.delete(`/catalog/books/${id}`),
+  generateKeywords: (id: string) => apiClient.post<void>(`/catalog/books/${id}/keywords/generate`, {}),
+  generateDescription: (id: string) => apiClient.post<string>(`/catalog/books/${id}/description/generate`, {}),
 };

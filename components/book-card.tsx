@@ -20,6 +20,7 @@ export interface Book {
   coverUrl?: string;
   averageRating?: number;
   totalReviews?: number;
+  stockQuantity?: number;
 }
 
 export function BookCard({ book }: { book: Book }) {
@@ -65,7 +66,18 @@ export function BookCard({ book }: { book: Book }) {
       {!isManager && <FavoriteButton book={book} variant="card" />}
 
       {/* Обложка книги с фиксированной высотой */}
-      <div className="h-72 w-full overflow-hidden bg-muted">
+      <div className="relative h-72 w-full overflow-hidden bg-muted">
+        {/* Бейдж наличия */}
+        {book.stockQuantity === 0 && (
+          <span className="absolute top-2 left-2 z-20 inline-flex items-center rounded-md bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive border border-destructive/30">
+            Нет в наличии
+          </span>
+        )}
+        {typeof book.stockQuantity === "number" && book.stockQuantity > 0 && book.stockQuantity <= 5 && (
+          <span className="absolute top-2 left-2 z-20 inline-flex items-center rounded-md bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 border border-amber-500/30">
+            Осталось: {book.stockQuantity} шт.
+          </span>
+        )}
         {book.coverUrl ? (
           <img
             src={book.coverUrl}

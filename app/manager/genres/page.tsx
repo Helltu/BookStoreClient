@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,23 @@ import { Label } from "@/components/ui/label";
 import { genresApi } from "@/lib/api/manager";
 import type { Genre } from "@/lib/types/manager";
 
+type SortField = "name";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
+  if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 ml-1 opacity-40" />;
+  return sortDir === "asc"
+    ? <ChevronUp className="h-3.5 w-3.5 ml-1" />
+    : <ChevronDown className="h-3.5 w-3.5 ml-1" />;
+}
+
 export default function GenresPage() {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingGenre, setEditingGenre] = useState<Genre | null>(null);
@@ -36,6 +49,12 @@ export default function GenresPage() {
   }, []);
 
   useEffect(() => { loadGenres(); }, [loadGenres]);
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(field); setSortDir("asc"); }
+    setPage(0);
+  };
 
   const openCreate = () => {
     setEditingGenre(null);
@@ -84,9 +103,20 @@ export default function GenresPage() {
     }
   };
 
+  const PAGE_SIZE = 20;
+  const q = search.toLowerCase();
   const filtered = genres.filter((g) =>
-    g.name.toLowerCase().includes(search.toLowerCase())
+    g.id.toLowerCase().includes(q) ||
+    g.name.toLowerCase().includes(q)
   );
+  const sorted = [...filtered].sort((a, b) => {
+    const cmp = a[sortField].localeCompare(b[sortField]);
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   return (
     <div>
@@ -101,9 +131,9 @@ export default function GenresPage() {
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Поиск жанров..."
+          placeholder="Поиск по ID или названию..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           className="pl-9"
         />
       </div>
@@ -115,33 +145,55 @@ export default function GenresPage() {
           {search ? "Ничего не найдено" : "Жанры не добавлены"}
         </div>
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Название</TableHead>
-                <TableHead className="w-28 text-right">Действия</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((genre) => (
-                <TableRow key={genre.id}>
-                  <TableCell className="font-medium">{genre.name}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(genre)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(genre)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
+        <>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className={thClass} onClick={() => toggleSort("name")}>
+                    <span className="flex items-center">Название <SortIcon field="name" sortField={sortField} sortDir={sortDir} /></span>
+                  </TableHead>
+                  <TableHead className="hidden xl:table-cell w-72 text-muted-foreground font-normal">ID</TableHead>
+                  <TableHead className="w-28 text-right">Действия</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {paginated.map((genre) => (
+                  <TableRow key={genre.id}>
+                    <TableCell className="font-medium">{genre.name}</TableCell>
+                    <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{genre.id}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(genre)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(genre)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-muted-foreground">
+                Показано {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, sorted.length)} из {sorted.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground">{page + 1} / {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Create / Edit dialog */}

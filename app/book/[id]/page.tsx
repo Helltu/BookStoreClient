@@ -32,6 +32,7 @@ interface BookDetail {
   language?: string;
   reviews?: Review[];
   genres?: string[];
+  stockQuantity?: number;
 }
 
 async function getBookDetail(id: string): Promise<BookDetail | null> {
@@ -124,6 +125,17 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
 
             {/* Блок покупки */}
             <div className="py-6 border-y mb-8 flex flex-col gap-4">
+              {/* Наличие */}
+              {book.stockQuantity === 0 && (
+                <span className="inline-flex w-fit items-center rounded-md bg-destructive/10 px-3 py-1 text-sm font-semibold text-destructive border border-destructive/30">
+                  Нет в наличии
+                </span>
+              )}
+              {book.stockQuantity !== undefined && book.stockQuantity > 0 && book.stockQuantity <= 5 && (
+                <span className="inline-flex w-fit items-center rounded-md bg-amber-500/10 px-3 py-1 text-sm font-semibold text-amber-600 border border-amber-500/30">
+                  Осталось: {book.stockQuantity} шт.
+                </span>
+              )}
               {/* Цена */}
               <div className="flex items-baseline gap-2">
     <span className="text-4xl font-bold tracking-tight">

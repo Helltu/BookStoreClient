@@ -23,7 +23,7 @@ export interface ManagedBook {
   description: string;
   price: number;
   isbn?: string;
-  stock?: number;
+  stockQuantity?: number;
   language?: string;
   publicationYear?: number;
   pageCount?: number;
@@ -42,7 +42,7 @@ export interface BookFormData {
   description: string;
   isbn: string;
   price: number;
-  stock: number;
+  stockQuantity: number;
   authorIds: string[];
   genreIds: string[];
   publisherId: string | null;

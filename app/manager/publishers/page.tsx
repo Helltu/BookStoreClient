@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Plus, Pencil, Trash2, Search, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +12,23 @@ import { Label } from "@/components/ui/label";
 import { publishersApi } from "@/lib/api/manager";
 import type { Publisher } from "@/lib/types/manager";
 
+type SortField = "name";
+type SortDir = "asc" | "desc";
+
+function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
+  if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 ml-1 opacity-40" />;
+  return sortDir === "asc"
+    ? <ChevronUp className="h-3.5 w-3.5 ml-1" />
+    : <ChevronDown className="h-3.5 w-3.5 ml-1" />;
+}
+
 export default function PublishersPage() {
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [sortField, setSortField] = useState<SortField>("name");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPublisher, setEditingPublisher] = useState<Publisher | null>(null);
@@ -27,6 +40,8 @@ export default function PublishersPage() {
 
   const [deleteTarget, setDeleteTarget] = useState<Publisher | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const loadPublishers = useCallback(async () => {
     try {
@@ -40,6 +55,20 @@ export default function PublishersPage() {
   }, []);
 
   useEffect(() => { loadPublishers(); }, [loadPublishers]);
+
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setLightboxUrl(null); };
+    window.addEventListener("keydown", handler);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", handler); document.body.style.overflow = ""; };
+  }, [lightboxUrl]);
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else { setSortField(field); setSortDir("asc"); }
+    setPage(0);
+  };
 
   const openCreate = () => {
     setEditingPublisher(null);
@@ -97,9 +126,21 @@ export default function PublishersPage() {
     }
   };
 
+  const PAGE_SIZE = 20;
+  const q = search.toLowerCase();
   const filtered = publishers.filter((p) =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    p.id.toLowerCase().includes(q) ||
+    p.name.toLowerCase().includes(q) ||
+    (p.description ?? "").toLowerCase().includes(q)
   );
+  const sorted = [...filtered].sort((a, b) => {
+    const cmp = a[sortField].localeCompare(b[sortField]);
+    return sortDir === "asc" ? cmp : -cmp;
+  });
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const paginated = sorted.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   return (
     <div>
@@ -114,9 +155,9 @@ export default function PublishersPage() {
       <div className="relative mb-4 max-w-sm">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Поиск издательств..."
+          placeholder="Поиск по ID, названию, описанию..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
           className="pl-9"
         />
       </div>
@@ -128,46 +169,94 @@ export default function PublishersPage() {
           {search ? "Ничего не найдено" : "Издательства не добавлены"}
         </div>
       ) : (
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-16">Лого</TableHead>
-                <TableHead>Название</TableHead>
-                <TableHead className="hidden md:table-cell">Описание</TableHead>
-                <TableHead className="w-28 text-right">Действия</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((publisher) => (
-                <TableRow key={publisher.id}>
-                  <TableCell>
-                    {publisher.logoUrl ? (
-                      <img src={publisher.logoUrl} alt={publisher.name} className="h-10 w-10 rounded object-cover" />
-                    ) : (
-                      <div className="h-10 w-10 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                        —
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">{publisher.name}</TableCell>
-                  <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-xs truncate">
-                    {publisher.description || "—"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(publisher)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(publisher)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
+        <>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-16">Лого</TableHead>
+                  <TableHead className={thClass} onClick={() => toggleSort("name")}>
+                    <span className="flex items-center">Название <SortIcon field="name" sortField={sortField} sortDir={sortDir} /></span>
+                  </TableHead>
+                  <TableHead className="hidden md:table-cell">Описание</TableHead>
+                  <TableHead className="hidden xl:table-cell w-72 text-muted-foreground font-normal">ID</TableHead>
+                  <TableHead className="w-28 text-right">Действия</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {paginated.map((publisher) => (
+                  <TableRow key={publisher.id}>
+                    <TableCell>
+                      {publisher.logoUrl ? (
+                        <img
+                          src={publisher.logoUrl}
+                          alt={publisher.name}
+                          className="h-10 w-10 rounded object-cover cursor-zoom-in hover:opacity-80 transition-opacity"
+                          onClick={() => setLightboxUrl(publisher.logoUrl!)}
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                          —
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{publisher.name}</TableCell>
+                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-xs truncate">
+                      {publisher.description || "—"}
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{publisher.id}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(publisher)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(publisher)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <span className="text-sm text-muted-foreground">
+                Показано {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, sorted.length)} из {sorted.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(page - 1)}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm text-muted-foreground">{page + 1} / {totalPages}</span>
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center backdrop-blur-sm"
+          onClick={() => setLightboxUrl(null)}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt="Логотип издательства"
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 

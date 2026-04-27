@@ -49,16 +49,19 @@ export default function EditBookPage() {
     <div>
       <h1 className="text-2xl font-bold mb-6">Редактирование: {book.title}</h1>
       <BookForm
+        bookId={params.id}
         initialData={{
           title: book.title,
           description: book.description,
           price: book.price,
           isbn: book.isbn ?? "",
-          stock: book.stock ?? 0,
+          stockQuantity: book.stockQuantity ?? 0,
           keywords: book.keywords ?? [],
           currentAuthorNames: book.authors,
           currentGenreNames: book.genres,
           currentPublisherName: book.publisher ?? undefined,
+          coverUrl: book.coverUrl,
+          previewUrls: book.previewUrls,
         }}
         onSubmit={handleSubmit}
         submitLabel="Сохранить изменения"
