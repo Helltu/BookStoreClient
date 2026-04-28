@@ -1,6 +1,7 @@
 import { BookCard, type Book } from "@/components/book-card";
 import { PaginationControls } from "@/components/pagination-controls";
 import { CatalogFilterSidebar } from "@/components/catalog-filter-sidebar";
+import { CatalogSortSelect } from "@/components/catalog-sort-select";
 
 interface PaginatedBooks {
   content: Book[];
@@ -18,7 +19,7 @@ interface ActiveFilters {
   inStock: boolean;
 }
 
-async function getBooks(filters: ActiveFilters & { page: number }): Promise<PaginatedBooks> {
+async function getBooks(filters: ActiveFilters & { page: number; sort: string }): Promise<PaginatedBooks> {
   const url = new URL("http://localhost:8080/api/catalog/search");
   url.searchParams.append("page", filters.page.toString());
   url.searchParams.append("size", "12");
@@ -29,6 +30,9 @@ async function getBooks(filters: ActiveFilters & { page: number }): Promise<Pagi
   filters.authors.forEach(a => url.searchParams.append("authors", a));
   if (filters.publisher) url.searchParams.append("publisher", filters.publisher);
   if (filters.inStock) url.searchParams.append("inStock", "true");
+  if (filters.sort && filters.sort !== "newest") {
+    filters.sort.split(";").forEach(s => url.searchParams.append("sort", s));
+  }
 
   const res = await fetch(url.toString(), { next: { revalidate: 60 } });
   if (!res.ok) throw new Error("Failed to fetch books");
@@ -62,9 +66,24 @@ export default async function Home(props: {
   const authorsParam = searchParams?.authors;
   const authors = Array.isArray(authorsParam) ? authorsParam : authorsParam ? [authorsParam] : [];
 
+  const sort = typeof searchParams?.sort === "string" ? searchParams.sort : "newest";
+
   const activeFilters: ActiveFilters = { query, genres, authors, publisher, minPrice, maxPrice, inStock };
 
-  const { content: books, totalPages, number: currentPage } = await getBooks({ ...activeFilters, page });
+  const { content: books, totalPages, number: currentPage } = await getBooks({ ...activeFilters, page, sort });
+
+  const currentParamsString = (() => {
+    const p = new URLSearchParams();
+    if (query) p.set("query", query);
+    genres.forEach(g => p.append("genres", g));
+    authors.forEach(a => p.append("authors", a));
+    if (publisher) p.set("publisher", publisher);
+    if (minPrice) p.set("minPrice", minPrice);
+    if (maxPrice) p.set("maxPrice", maxPrice);
+    if (inStock) p.set("inStock", "true");
+    if (sort) p.set("sort", sort);
+    return p.toString();
+  })();
 
   return (
     <div className="flex flex-col flex-1 p-8">
@@ -81,7 +100,8 @@ export default async function Home(props: {
         </div>
 
         <div className="flex items-center gap-3">
-          <CatalogFilterSidebar activeFilters={activeFilters} />
+          <CatalogFilterSidebar activeFilters={activeFilters} currentSort={sort} />
+          <CatalogSortSelect currentSort={sort} currentParams={currentParamsString} />
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { X, Upload, Plus, Search, Sparkles, ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,9 +87,15 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
       if (e.key === "ArrowRight") setLightboxIndex((p) => (p + 1) % allGalleryImages.length);
       if (e.key === "ArrowLeft") setLightboxIndex((p) => (p - 1 + allGalleryImages.length) % allGalleryImages.length);
     };
+    const mainEl = document.querySelector("main") as HTMLElement | null;
     window.addEventListener("keydown", handler);
     document.body.style.overflow = "hidden";
-    return () => { window.removeEventListener("keydown", handler); document.body.style.overflow = ""; };
+    if (mainEl) mainEl.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", handler);
+      document.body.style.overflow = "";
+      if (mainEl) mainEl.style.overflow = "";
+    };
   }, [lightboxOpen, allGalleryImages.length]);
 
   const handleGenerateKeywords = async () => {
@@ -328,7 +335,7 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
         })()}
 
         {/* Lightbox */}
-        {lightboxOpen && (
+        {lightboxOpen && createPortal(
           <div
             className="fixed inset-0 z-50 bg-black/50 flex backdrop-blur-sm"
             onClick={closeLightbox}
@@ -387,7 +394,8 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
                 {lightboxIndex + 1} / {allGalleryImages.length}
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         <div className="space-y-2">

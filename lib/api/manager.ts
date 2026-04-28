@@ -55,10 +55,16 @@ export const publishersApi = {
 
 // Books (multipart/form-data for create/update)
 export const booksApi = {
-  getAll: (page: number, size: number, query?: string, inStock?: boolean) => {
+  getAll: (page: number, size: number, query?: string, inStock?: boolean, sort?: string, genres?: string[], authors?: string[], publisher?: string, minPrice?: string, maxPrice?: string) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (query) params.set('query', query);
-    if (inStock !== undefined) params.set('inStock', String(inStock));
+    if (inStock) params.set('inStock', 'true');
+    if (sort) params.append('sort', sort);
+    genres?.forEach(g => params.append('genres', g));
+    authors?.forEach(a => params.append('authors', a));
+    if (publisher) params.set('publisher', publisher);
+    if (minPrice) params.set('minPrice', minPrice);
+    if (maxPrice) params.set('maxPrice', maxPrice);
     return apiClient.get<PageResponse<ManagedBook>>(`/catalog/search?${params}`);
   },
   getById: (id: string) => apiClient.get<ManagedBook>(`/catalog/books/${id}`),
@@ -95,6 +101,8 @@ export const booksApi = {
     }
     return apiClient.put<void>(`/catalog/books/${id}`, fd, multipartConfig());
   },
+  importByIsbn: (isbn: string, price: number, stock: number) =>
+    apiClient.post<string>('/catalog/import', { isbn, price, stock }),
   adjustStock: (id: string, stockQuantity: number) =>
     apiClient.patch<void>(`/catalog/books/${id}/stock`, { quantity: stockQuantity }),
   delete: (id: string) => apiClient.delete(`/catalog/books/${id}`),

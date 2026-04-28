@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import apiClient from "@/lib/api/axios";
 import { Button } from "@/components/ui/button";
@@ -15,19 +14,17 @@ import {
 } from "@/components/ui/sheet";
 import { SlidersHorizontal, X, Loader2 } from "lucide-react";
 
-interface ActiveFilters {
-  query: string;
+interface ManagerBookFilters {
   genres: string[];
   authors: string[];
   publisher: string;
   minPrice: string;
   maxPrice: string;
-  inStock: boolean;
 }
 
-interface CatalogFilterSidebarProps {
-  activeFilters: ActiveFilters;
-  currentSort?: string;
+interface ManagerBookFilterSidebarProps {
+  filters: ManagerBookFilters;
+  onChange: (filters: ManagerBookFilters) => void;
 }
 
 interface FilterData {
@@ -37,10 +34,9 @@ interface FilterData {
   priceRange: { min: number; max: number };
 }
 
-export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilterSidebarProps) {
-  const router = useRouter();
-  const [minPrice, setMinPrice] = useState(activeFilters.minPrice);
-  const [maxPrice, setMaxPrice] = useState(activeFilters.maxPrice);
+export function ManagerBookFilterSidebar({ filters, onChange }: ManagerBookFilterSidebarProps) {
+  const [minPrice, setMinPrice] = useState(filters.minPrice);
+  const [maxPrice, setMaxPrice] = useState(filters.maxPrice);
   const [genreSearch, setGenreSearch] = useState("");
   const [authorSearch, setAuthorSearch] = useState("");
   const [publisherSearch, setPublisherSearch] = useState("");
@@ -73,65 +69,41 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
 
   const { genres, authors, publishers, priceRange } = data;
 
-  function buildUrl(overrides: Partial<ActiveFilters>): string {
-    const merged = { ...activeFilters, ...overrides };
-    const params = new URLSearchParams();
-    if (merged.query) params.set("query", merged.query);
-    merged.genres.forEach(g => params.append("genres", g));
-    merged.authors.forEach(a => params.append("authors", a));
-    if (merged.publisher) params.set("publisher", merged.publisher);
-    if (merged.minPrice) params.set("minPrice", merged.minPrice);
-    if (merged.maxPrice) params.set("maxPrice", merged.maxPrice);
-    if (merged.inStock) params.set("inStock", "true");
-    if (currentSort && currentSort !== "newest") params.set("sort", currentSort);
-    return `/?${params.toString()}`;
-  }
-
   function toggleGenre(genre: string) {
-    const next = activeFilters.genres.includes(genre)
-      ? activeFilters.genres.filter(g => g !== genre)
-      : [...activeFilters.genres, genre];
-    router.push(buildUrl({ genres: next }));
+    const next = filters.genres.includes(genre)
+      ? filters.genres.filter(g => g !== genre)
+      : [...filters.genres, genre];
+    onChange({ ...filters, genres: next });
   }
 
   function toggleAuthor(author: string) {
-    const next = activeFilters.authors.includes(author)
-      ? activeFilters.authors.filter(a => a !== author)
-      : [...activeFilters.authors, author];
-    router.push(buildUrl({ authors: next }));
+    const next = filters.authors.includes(author)
+      ? filters.authors.filter(a => a !== author)
+      : [...filters.authors, author];
+    onChange({ ...filters, authors: next });
   }
 
   function togglePublisher(pub: string) {
-    router.push(buildUrl({ publisher: activeFilters.publisher === pub ? "" : pub }));
+    onChange({ ...filters, publisher: filters.publisher === pub ? "" : pub });
   }
 
   function applyPriceRange() {
-    router.push(buildUrl({ minPrice, maxPrice }));
+    onChange({ ...filters, minPrice, maxPrice });
   }
 
   function resetFilters() {
-    const params = new URLSearchParams();
-    if (activeFilters.query) params.set("query", activeFilters.query);
-    if (currentSort && currentSort !== "newest") params.set("sort", currentSort);
     setMinPrice("");
     setMaxPrice("");
-    router.push(`/?${params.toString()}`);
+    onChange({ genres: [], authors: [], publisher: "", minPrice: "", maxPrice: "" });
   }
 
-  const hasActiveFilters =
-    activeFilters.genres.length > 0 ||
-    activeFilters.authors.length > 0 ||
-    !!activeFilters.publisher ||
-    !!activeFilters.minPrice ||
-    !!activeFilters.maxPrice ||
-    activeFilters.inStock;
-
   const activeCount =
-    activeFilters.genres.length +
-    activeFilters.authors.length +
-    (activeFilters.publisher ? 1 : 0) +
-    (activeFilters.minPrice || activeFilters.maxPrice ? 1 : 0) +
-    (activeFilters.inStock ? 1 : 0);
+    filters.genres.length +
+    filters.authors.length +
+    (filters.publisher ? 1 : 0) +
+    (filters.minPrice || filters.maxPrice ? 1 : 0);
+
+  const hasActiveFilters = activeCount > 0;
 
   return (
     <Sheet>
@@ -147,7 +119,7 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
         </Button>
       </SheetTrigger>
 
-      <SheetContent side="left" className="w-72 sm:max-w-72 flex flex-col p-0">
+      <SheetContent side="right" className="w-72 sm:max-w-72 flex flex-col p-0">
         <SheetHeader className="px-5 pt-5 pb-4 border-b shrink-0">
           <SheetTitle className="flex items-center gap-2">
             <SlidersHorizontal className="h-4 w-4" />
@@ -162,20 +134,6 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
             </div>
           ) : (
             <div className="flex flex-col gap-5 px-5 py-5 pb-24">
-              {/* In Stock */}
-              <label className="flex items-center gap-2.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={activeFilters.inStock}
-                  onChange={() => router.push(buildUrl({ inStock: !activeFilters.inStock }))}
-                  className="h-4 w-4 rounded accent-primary"
-                />
-                <span className="text-sm font-medium">Только в наличии</span>
-              </label>
-
-              <Separator />
-
-              {/* Price Range */}
               <div className="flex flex-col gap-3">
                 <h3 className="text-sm font-semibold">Цена (BYN)</h3>
                 <div className="flex items-center gap-2">
@@ -219,7 +177,7 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
                         <label key={genre} className="flex items-center gap-2.5 cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={activeFilters.genres.includes(genre)}
+                            checked={filters.genres.includes(genre)}
                             onChange={() => toggleGenre(genre)}
                             className="h-4 w-4 rounded accent-primary shrink-0"
                           />
@@ -247,7 +205,7 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
                         <label key={author} className="flex items-center gap-2.5 cursor-pointer">
                           <input
                             type="checkbox"
-                            checked={activeFilters.authors.includes(author)}
+                            checked={filters.authors.includes(author)}
                             onChange={() => toggleAuthor(author)}
                             className="h-4 w-4 rounded accent-primary shrink-0"
                           />
@@ -275,8 +233,8 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
                         <label key={pub} className="flex items-center gap-2.5 cursor-pointer">
                           <input
                             type="radio"
-                            name="publisher"
-                            checked={activeFilters.publisher === pub}
+                            name="manager-publisher"
+                            checked={filters.publisher === pub}
                             onChange={() => togglePublisher(pub)}
                             className="h-4 w-4 accent-primary shrink-0"
                           />

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { Plus, Pencil, Trash2, Search, ChevronLeft, ChevronRight, Package, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, ChevronUp, ChevronDown, ChevronsUpDown, X, Download } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { booksApi } from "@/lib/api/manager";
+import { ManagerPagination } from "@/components/manager/manager-pagination";
+import { ManagerBookFilterSidebar } from "@/components/manager/manager-book-filter-sidebar";
 import type { ManagedBook } from "@/lib/types/manager";
 
 const PAGE_SIZE = 15;
@@ -26,8 +29,36 @@ function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: 
 }
 
 export default function BooksPage() {
+  const router = useRouter();
   const [books, setBooks] = useState<ManagedBook[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [importOpen, setImportOpen] = useState(false);
+  const [importIsbn, setImportIsbn] = useState("");
+  const [importPrice, setImportPrice] = useState("");
+  const [importStock, setImportStock] = useState("");
+  const [importing, setImporting] = useState(false);
+
+  const handleImport = async () => {
+    setImporting(true);
+    try {
+      const res = await booksApi.importByIsbn(importIsbn.trim(), parseFloat(importPrice), parseInt(importStock));
+      toast.success("Книга импортирована");
+      setImportOpen(false);
+      const uuidMatch = String(res.data).match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      if (uuidMatch) {
+        router.push(`/manager/books/${uuidMatch[0]}/edit`);
+      } else {
+        loadBooks();
+      }
+    } catch {
+      // handled by interceptor
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const importValid = importIsbn.trim().length > 0 && parseFloat(importPrice) > 0 && parseInt(importStock) >= 0;
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [search, setSearch] = useState("");
@@ -35,6 +66,7 @@ export default function BooksPage() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortField, setSortField] = useState<SortField>("title");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [bookFilters, setBookFilters] = useState({ genres: [] as string[], authors: [] as string[], publisher: "", minPrice: "", maxPrice: "" });
 
   const [deleteTarget, setDeleteTarget] = useState<ManagedBook | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -48,7 +80,17 @@ export default function BooksPage() {
   const loadBooks = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await booksApi.getAll(page, PAGE_SIZE, search || undefined, inStockOnly || undefined);
+      const res = await booksApi.getAll(
+        page, PAGE_SIZE,
+        search || undefined,
+        inStockOnly || undefined,
+        `${sortField},${sortDir}`,
+        bookFilters.genres.length ? bookFilters.genres : undefined,
+        bookFilters.authors.length ? bookFilters.authors : undefined,
+        bookFilters.publisher || undefined,
+        bookFilters.minPrice || undefined,
+        bookFilters.maxPrice || undefined,
+      );
       setBooks(res.data.content);
       setTotalPages(res.data.totalPages);
     } catch {
@@ -56,7 +98,7 @@ export default function BooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, inStockOnly]);
+  }, [page, search, inStockOnly, sortField, sortDir, bookFilters]);
 
   useEffect(() => { loadBooks(); }, [loadBooks]);
 
@@ -75,6 +117,7 @@ export default function BooksPage() {
   };
 
   const toggleSort = (field: SortField) => {
+    setPage(0);
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortField(field); setSortDir("asc"); }
   };
@@ -119,26 +162,24 @@ export default function BooksPage() {
     }
   };
 
-  const sortedBooks = [...books].sort((a, b) => {
-    let cmp = 0;
-    if (sortField === "title") cmp = a.title.localeCompare(b.title);
-    else if (sortField === "price") cmp = a.price - b.price;
-    else if (sortField === "stockQuantity") cmp = (a.stockQuantity ?? 0) - (b.stockQuantity ?? 0);
-    return sortDir === "asc" ? cmp : -cmp;
-  });
-
   const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Книги</h1>
-        <Button asChild>
-          <Link href="/manager/books/new">
-            <Plus className="h-4 w-4 mr-2" />
-            Добавить книгу
-          </Link>
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { setImportIsbn(""); setImportPrice(""); setImportStock(""); setImportOpen(true); }}>
+            <Download className="h-4 w-4 mr-2" />
+            Импорт по ISBN
+          </Button>
+          <Button asChild>
+            <Link href="/manager/books/new">
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить книгу
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -164,6 +205,13 @@ export default function BooksPage() {
           />
           Только в наличии
         </label>
+
+        <div className="ml-auto">
+          <ManagerBookFilterSidebar
+            filters={bookFilters}
+            onChange={(f) => { setPage(0); setBookFilters(f); }}
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -195,7 +243,7 @@ export default function BooksPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedBooks.map((book) => (
+                {books.map((book) => (
                   <TableRow key={book.id}>
                     <TableCell>
                       {book.coverUrl ? (
@@ -266,31 +314,61 @@ export default function BooksPage() {
             </Table>
           </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page === 0}
-                onClick={() => setPage(page - 1)}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground px-2">
-                {page + 1} / {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={page >= totalPages - 1}
-                onClick={() => setPage(page + 1)}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </>
       )}
+
+      {/* Import by ISBN */}
+      <Dialog open={importOpen} onOpenChange={(open) => !open && setImportOpen(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Импорт книги по ISBN</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Данные будут загружены из Google Books API</p>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="import-isbn">ISBN *</Label>
+              <Input
+                id="import-isbn"
+                placeholder="978-3-16-148410-0"
+                value={importIsbn}
+                onChange={(e) => setImportIsbn(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="import-price">Цена (BYN) *</Label>
+              <Input
+                id="import-price"
+                type="number"
+                min="0.01"
+                step="0.01"
+                placeholder="29.99"
+                value={importPrice}
+                onChange={(e) => setImportPrice(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="import-stock">Начальный остаток *</Label>
+              <Input
+                id="import-stock"
+                type="number"
+                min="0"
+                placeholder="10"
+                value={importStock}
+                onChange={(e) => setImportStock(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && importValid && !importing && handleImport()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)}>Отмена</Button>
+            <Button onClick={handleImport} disabled={!importValid || importing}>
+              {importing ? "Импорт..." : "Импортировать"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Lightbox */}
       {lightboxUrl && (

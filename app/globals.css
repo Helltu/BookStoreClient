@@ -137,7 +137,12 @@
   input[type="checkbox"],
   [role="button"],
   label[for],
-  select {
+  select,
+  option,
+  [role="option"],
+  [role="listbox"],
+  [data-slot="select-trigger"],
+  [data-slot="select-item"] {
     @apply cursor-pointer;
   }
 }
