@@ -1,5 +1,12 @@
 import axios from 'axios';
+import type { InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'sonner';
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    skipErrorToast?: boolean;
+  }
+}
 
 const apiClient = axios.create({
   baseURL: '/api', // Теперь запросы идут через Next.js rewrites
@@ -26,12 +33,11 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.config?.skipErrorToast) return Promise.reject(error);
     if (error.response) {
-      // Сервер ответил с ошибкой (статус не 2xx)
       const message = error.response.data?.message || error.response.data?.error || `Ошибка сервера: ${error.response.status}`;
       toast.error(message);
     } else if (error.request) {
-      // Запрос был отправлен, но ответ не получен (сервер недоступен)
       toast.error('Сервер недоступен. Проверьте подключение.');
     } else {
       toast.error(`Ошибка запроса: ${error.message}`);

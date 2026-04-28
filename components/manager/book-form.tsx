@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { X, Upload, Plus, Search, Sparkles, ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,8 +43,10 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
     keywords: initialData?.keywords ?? [],
     coverFile: null,
     previewFiles: [],
+    keepPreviewUrls: initialData?.previewUrls ? [...initialData.previewUrls] : undefined,
   });
 
+  const initialFormRef = useRef<BookFormData | null>(null);
   const [saving, setSaving] = useState(false);
   const [generatingKeywords, setGeneratingKeywords] = useState(false);
   const [generatingDescription, setGeneratingDescription] = useState(false);
@@ -53,12 +55,26 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
   const [genreSearch, setGenreSearch] = useState("");
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
-  const [existingImages, setExistingImages] = useState<string[]>([
+  const [existingImages] = useState<string[]>([
     ...(initialData?.coverUrl ? [initialData.coverUrl] : []),
     ...(initialData?.previewUrls ?? []),
   ]);
+  const [coverObjectUrl, setCoverObjectUrl] = useState<string | null>(null);
+  const [previewObjectUrls, setPreviewObjectUrls] = useState<string[]>([]);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const previewInputRef = useRef<HTMLInputElement>(null);
+
+  const allGalleryImages = useMemo(() => {
+    const coverUrl = coverObjectUrl ?? existingImages[0];
+    const keptPreviews = existingImages.slice(1).filter(
+      (url) => form.keepPreviewUrls === undefined || form.keepPreviewUrls.includes(url)
+    );
+    return [
+      ...(coverUrl ? [coverUrl] : []),
+      ...keptPreviews,
+      ...previewObjectUrls,
+    ];
+  }, [coverObjectUrl, existingImages, previewObjectUrls, form.keepPreviewUrls]);
 
   const openLightbox = (idx: number) => { setLightboxIndex(idx); setLightboxOpen(true); };
   const closeLightbox = () => setLightboxOpen(false);
@@ -67,21 +83,26 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
     if (!lightboxOpen) return;
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeLightbox();
-      if (e.key === "ArrowRight") setLightboxIndex((p) => (p + 1) % existingImages.length);
-      if (e.key === "ArrowLeft") setLightboxIndex((p) => (p - 1 + existingImages.length) % existingImages.length);
+      if (e.key === "ArrowRight") setLightboxIndex((p) => (p + 1) % allGalleryImages.length);
+      if (e.key === "ArrowLeft") setLightboxIndex((p) => (p - 1 + allGalleryImages.length) % allGalleryImages.length);
     };
     window.addEventListener("keydown", handler);
     document.body.style.overflow = "hidden";
     return () => { window.removeEventListener("keydown", handler); document.body.style.overflow = ""; };
-  }, [lightboxOpen, existingImages.length]);
+  }, [lightboxOpen, allGalleryImages.length]);
 
   const handleGenerateKeywords = async () => {
-    if (!bookId) return;
     setGeneratingKeywords(true);
     try {
-      await booksApi.generateKeywords(bookId);
-      const res = await booksApi.getById(bookId);
-      updateField("keywords", res.data.keywords ?? []);
+      const res = bookId
+        ? await booksApi.generateKeywords(bookId)
+        : await booksApi.suggestKeywords({
+            title: form.title,
+            description: form.description || null,
+            existingKeywords: form.keywords,
+          });
+const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
+      updateField("keywords", keywords ?? []);
       toast.success("Ключевые слова сгенерированы");
     } catch {
       // handled by interceptor
@@ -91,12 +112,22 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
   };
 
   const handleGenerateDescription = async () => {
-    if (!bookId) return;
     setGeneratingDescription(true);
     try {
-      await booksApi.generateDescription(bookId);
-      const res = await booksApi.getById(bookId);
-      updateField("description", res.data.description ?? "");
+      const res = bookId
+        ? await booksApi.generateDescription(bookId)
+        : await booksApi.suggestDescription({
+            title: form.title,
+            authors: form.authorIds
+              .map((id) => authors.find((a) => a.id === id)?.name ?? "")
+              .filter(Boolean)
+              .join(", "),
+            genres: form.genreIds
+              .map((id) => genres.find((g) => g.id === id)?.name ?? "")
+              .filter(Boolean)
+              .join(", "),
+          });
+      updateField("description", res.data ?? "");
       toast.success("Описание сгенерировано");
     } catch {
       // handled by interceptor
@@ -139,6 +170,10 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
         // handled by interceptor
       } finally {
         setLoadingRefs(false);
+        setForm((prev) => {
+          initialFormRef.current = prev;
+          return prev;
+        });
       }
     }
     loadRefs();
@@ -176,20 +211,49 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
     updateField("keywords", form.keywords.filter((_, i) => i !== index));
   };
 
+  const removeExistingPreview = (url: string) => {
+    updateField("keepPreviewUrls", (form.keepPreviewUrls ?? existingImages.slice(1)).filter((u) => u !== url));
+  };
+
   const handlePreviewFiles = (files: FileList | null) => {
     if (!files) return;
-    updateField("previewFiles", [...form.previewFiles, ...Array.from(files)]);
+    const newFiles = Array.from(files);
+    updateField("previewFiles", [...form.previewFiles, ...newFiles]);
+    setPreviewObjectUrls((prev) => [...prev, ...newFiles.map((f) => URL.createObjectURL(f))]);
   };
 
   const removePreviewFile = (index: number) => {
     updateField("previewFiles", form.previewFiles.filter((_, i) => i !== index));
+    setPreviewObjectUrls((prev) => {
+      URL.revokeObjectURL(prev[index]);
+      return prev.filter((_, i) => i !== index);
+    });
   };
+
+  const isDirty = !bookId || !initialFormRef.current || (() => {
+    const init = initialFormRef.current;
+    return (
+      form.title !== init.title ||
+      form.description !== init.description ||
+      form.price !== init.price ||
+      form.isbn !== init.isbn ||
+      form.stockQuantity !== init.stockQuantity ||
+      form.publisherId !== init.publisherId ||
+      form.coverFile !== null ||
+      form.previewFiles.length > 0 ||
+      JSON.stringify(form.authorIds.slice().sort()) !== JSON.stringify(init.authorIds.slice().sort()) ||
+      JSON.stringify(form.genreIds.slice().sort()) !== JSON.stringify(init.genreIds.slice().sort()) ||
+      JSON.stringify(form.keywords.slice().sort()) !== JSON.stringify(init.keywords.slice().sort()) ||
+      JSON.stringify(form.keepPreviewUrls?.slice().sort()) !== JSON.stringify(init.keepPreviewUrls?.slice().sort())
+    );
+  })();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     try {
       await onSubmit(form);
+      initialFormRef.current = form;
     } finally {
       setSaving(false);
     }
@@ -205,29 +269,34 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
       <section className="space-y-4">
         <h2 className="text-lg font-semibold border-b pb-2">Изображения</h2>
 
-        {/* Existing media preview */}
-        {existingImages.length > 0 && (
+        {/* Media preview */}
+        {(() => {
+          const isNew = (url: string) => url.startsWith("blob:");
+          return allGalleryImages.length > 0 ? (
           <div className="space-y-2">
-            <Label>Текущие изображения</Label>
+            <Label>Изображения</Label>
             <div className="flex flex-col gap-3">
               <div
                 onClick={() => openLightbox(0)}
                 className="relative aspect-[2/3] w-40 cursor-pointer overflow-hidden rounded-xl border bg-muted shadow group"
               >
                 <img
-                  src={existingImages[0]}
+                  src={allGalleryImages[0]}
                   alt="Обложка"
                   className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]"
                 />
+                {isNew(allGalleryImages[0]) && (
+                  <span className="absolute top-1 left-1 bg-primary text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium">новое</span>
+                )}
                 <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10 flex items-center justify-center">
                   <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-white px-2 py-1 rounded-full flex items-center gap-1 text-xs backdrop-blur-sm">
                     <ZoomIn className="w-3 h-3" /> Открыть
                   </span>
                 </div>
               </div>
-              {existingImages.length > 1 && (
+              {allGalleryImages.length > 1 && (
                 <div className="flex gap-2 flex-wrap">
-                  {existingImages.slice(1).map((url, idx) => (
+                  {allGalleryImages.slice(1).map((url, idx) => (
                     <div
                       key={url + idx}
                       onClick={() => openLightbox(idx + 1)}
@@ -238,13 +307,25 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
                         alt={`Превью ${idx + 1}`}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                       />
+                      {isNew(url) ? (
+                        <span className="absolute top-0.5 left-0.5 bg-primary text-primary-foreground text-[9px] px-1 py-0.5 rounded-full font-medium leading-none">new</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); removeExistingPreview(url); }}
+                          className="absolute top-0.5 right-0.5 p-0.5 bg-black/60 hover:bg-destructive text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </div>
           </div>
-        )}
+          ) : null;
+        })()}
 
         {/* Lightbox */}
         {lightboxOpen && (
@@ -262,7 +343,7 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
               className="hidden md:flex flex-col w-[120px] p-4 gap-3 overflow-y-auto border-r border-white/10 shrink-0"
               onClick={(e) => e.stopPropagation()}
             >
-              {existingImages.map((url, idx) => (
+              {allGalleryImages.map((url, idx) => (
                 <button
                   key={url + idx}
                   onClick={() => setLightboxIndex(idx)}
@@ -279,20 +360,20 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
             </div>
             <div className="flex-1 relative flex items-center justify-center p-4">
               <img
-                src={existingImages[lightboxIndex]}
+                src={allGalleryImages[lightboxIndex]}
                 alt={`Изображение ${lightboxIndex + 1}`}
                 className="w-full h-full object-contain"
               />
-              {existingImages.length > 1 && (
+              {allGalleryImages.length > 1 && (
                 <>
                   <button
-                    onClick={(e) => { e.stopPropagation(); setLightboxIndex((p) => (p - 1 + existingImages.length) % existingImages.length); }}
+                    onClick={(e) => { e.stopPropagation(); setLightboxIndex((p) => (p - 1 + allGalleryImages.length) % allGalleryImages.length); }}
                     className="absolute left-4 p-3 text-white/70 hover:text-white transition-colors bg-black/40 hover:bg-black/60 rounded-full"
                   >
                     <ChevronLeft className="w-8 h-8" />
                   </button>
                   <button
-                    onClick={(e) => { e.stopPropagation(); setLightboxIndex((p) => (p + 1) % existingImages.length); }}
+                    onClick={(e) => { e.stopPropagation(); setLightboxIndex((p) => (p + 1) % allGalleryImages.length); }}
                     className="absolute right-4 p-3 text-white/70 hover:text-white transition-colors bg-black/40 hover:bg-black/60 rounded-full"
                   >
                     <ChevronRight className="w-8 h-8" />
@@ -303,7 +384,7 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
                 className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/80 text-sm bg-black/50 px-4 py-1.5 rounded-full backdrop-blur-md font-medium"
                 onClick={(e) => e.stopPropagation()}
               >
-                {lightboxIndex + 1} / {existingImages.length}
+                {lightboxIndex + 1} / {allGalleryImages.length}
               </div>
             </div>
           </div>
@@ -316,7 +397,12 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
             type="file"
             accept="image/*"
             className="hidden"
-            onChange={(e) => updateField("coverFile", e.target.files?.[0] ?? null)}
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null;
+              updateField("coverFile", file);
+              if (coverObjectUrl) URL.revokeObjectURL(coverObjectUrl);
+              setCoverObjectUrl(file ? URL.createObjectURL(file) : null);
+            }}
           />
           <Button type="button" variant="outline" className="w-full gap-2" onClick={() => coverInputRef.current?.click()}>
             <Upload className="h-4 w-4" />
@@ -371,19 +457,17 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="description">Описание</Label>
-            {bookId && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="gap-1.5 text-xs h-7"
-                onClick={handleGenerateDescription}
-                disabled={generatingDescription}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {generatingDescription ? "Генерация..." : "Сгенерировать ИИ"}
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-xs h-7"
+              onClick={handleGenerateDescription}
+              disabled={generatingDescription || !form.title.trim()}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {generatingDescription ? "Генерация..." : "Сгенерировать ИИ"}
+            </Button>
           </div>
           <Textarea
             id="description"
@@ -585,19 +669,17 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
       <section className="space-y-4">
         <div className="flex items-center justify-between border-b pb-2">
           <h2 className="text-lg font-semibold">Ключевые слова</h2>
-          {bookId && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="gap-1.5 text-xs h-7"
-              onClick={handleGenerateKeywords}
-              disabled={generatingKeywords}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              {generatingKeywords ? "Генерация..." : "Сгенерировать ИИ"}
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="gap-1.5 text-xs h-7"
+            onClick={handleGenerateKeywords}
+            disabled={generatingKeywords || !form.title.trim()}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {generatingKeywords ? "Генерация..." : "Сгенерировать ИИ"}
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground">Оставьте пустым для автоматической генерации.</p>
         {form.keywords.length > 0 && (
@@ -632,7 +714,7 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
 
       {/* Submit */}
       <div className="flex gap-3 pt-4 border-t">
-        <Button type="submit" disabled={saving || !form.title.trim()}>
+        <Button type="submit" disabled={saving || !form.title.trim() || !isDirty}>
           {saving ? "Сохранение..." : submitLabel}
         </Button>
         <Button type="button" variant="outline" onClick={() => window.history.back()}>

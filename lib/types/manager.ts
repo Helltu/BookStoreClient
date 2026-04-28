@@ -49,6 +49,7 @@ export interface BookFormData {
   keywords: string[];
   coverFile: File | null;
   previewFiles: File[];
+  keepPreviewUrls?: string[];
 }
 
 export interface PageResponse<T> {

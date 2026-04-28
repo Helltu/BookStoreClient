@@ -90,11 +90,33 @@ export const booksApi = {
     data.keywords.forEach((kw) => fd.append('keywords', kw));
     if (data.coverFile) fd.append('coverFile', data.coverFile);
     data.previewFiles.forEach((file) => fd.append('previewFiles', file));
+    if (data.keepPreviewUrls !== undefined) {
+      data.keepPreviewUrls.forEach((url) => fd.append('keepPreviewUrls', url));
+    }
     return apiClient.put<void>(`/catalog/books/${id}`, fd, multipartConfig());
   },
   adjustStock: (id: string, stockQuantity: number) =>
     apiClient.patch<void>(`/catalog/books/${id}/stock`, { quantity: stockQuantity }),
   delete: (id: string) => apiClient.delete(`/catalog/books/${id}`),
-  generateKeywords: (id: string) => apiClient.post<void>(`/catalog/books/${id}/keywords/generate`, {}),
-  generateDescription: (id: string) => apiClient.post<string>(`/catalog/books/${id}/description/generate`, {}),
+  generateKeywords: (id: string) => apiClient.get<string[]>(`/catalog/books/${id}/keywords/generate`),
+  generateDescription: (id: string) => apiClient.get<string>(`/catalog/books/${id}/description/generate`),
+  suggestKeywords: (body: { title: string; description?: string | null; existingKeywords: string[] }) =>
+    apiClient.post<string[]>('/catalog/books/keywords/suggest', body),
+  suggestDescription: (body: { title: string; authors: string; genres: string }) =>
+    apiClient.post<string>('/catalog/books/description/suggest', body),
+};
+
+export type CatalogEntity = 'genres' | 'authors' | 'publishers' | 'books';
+
+export const importExportApi = {
+  export: (entity: CatalogEntity) =>
+    apiClient.get(`/catalog/io/export/${entity}`, { responseType: 'blob' }),
+  import: async (entity: CatalogEntity, file: File) => {
+    const text = await file.text();
+    const json = JSON.parse(text);
+    return apiClient.post(`/catalog/io/import/${entity}`, json, {
+      headers: { 'Content-Type': 'application/json' },
+      skipErrorToast: true,
+    });
+  },
 };

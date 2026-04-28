@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import { BookForm } from "@/components/manager/book-form";
 import { booksApi } from "@/lib/api/manager";
 import type { BookFormData, ManagedBook } from "@/lib/types/manager";
 
 export default function EditBookPage() {
-  const router = useRouter();
   const params = useParams<{ id: string }>();
   const [book, setBook] = useState<ManagedBook | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +30,7 @@ export default function EditBookPage() {
     try {
       await booksApi.update(params.id, data);
       toast.success("Книга обновлена");
-      router.push("/manager/books");
+      window.location.reload();
     } catch {
       // handled by interceptor
     }

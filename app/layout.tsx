@@ -31,7 +31,7 @@ export default function RootLayout({
       lang="ru"
       suppressHydrationWarning
     >
-      <body className={cn("min-h-screen bg-background font-sans antialiased flex flex-col", geistSans.variable, geistMono.variable)}>
+      <body suppressHydrationWarning className={cn("min-h-screen bg-background font-sans antialiased flex flex-col", geistSans.variable, geistMono.variable)}>
         <AuthProvider>
           <Navbar />
           <main className="flex-1">
