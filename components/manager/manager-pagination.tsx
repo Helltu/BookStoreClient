@@ -1,5 +1,6 @@
 "use client";
 
+import { RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -7,9 +8,10 @@ interface ManagerPaginationProps {
   page: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  tableRef?: RefObject<HTMLDivElement | null>;
 }
 
-export function ManagerPagination({ page, totalPages, onPageChange }: ManagerPaginationProps) {
+export function ManagerPagination({ page, totalPages, onPageChange, tableRef }: ManagerPaginationProps) {
   if (totalPages <= 1) return null;
 
   const getPages = (): (number | "...")[] => {
@@ -24,9 +26,14 @@ export function ManagerPagination({ page, totalPages, onPageChange }: ManagerPag
     return pages;
   };
 
+  const handlePageChange = (p: number) => {
+    onPageChange(p);
+    if (tableRef?.current) tableRef.current.scrollTop = 0;
+  };
+
   return (
     <div className="flex items-center justify-center gap-1 mt-4">
-      <Button variant="outline" size="icon" disabled={page === 0} onClick={() => onPageChange(page - 1)}>
+      <Button variant="outline" size="icon" disabled={page === 0} onClick={() => handlePageChange(page - 1)}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
 
@@ -38,14 +45,14 @@ export function ManagerPagination({ page, totalPages, onPageChange }: ManagerPag
             key={p}
             variant={p === page ? "default" : "outline"}
             size="icon"
-            onClick={() => p !== page && onPageChange(p)}
+            onClick={() => p !== page && handlePageChange(p)}
           >
             {p + 1}
           </Button>
         )
       )}
 
-      <Button variant="outline" size="icon" disabled={page >= totalPages - 1} onClick={() => onPageChange(page + 1)}>
+      <Button variant="outline" size="icon" disabled={page >= totalPages - 1} onClick={() => handlePageChange(page + 1)}>
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>

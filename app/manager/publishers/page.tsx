@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 import { publishersApi } from "@/lib/api/manager";
 import { ManagerPagination } from "@/components/manager/manager-pagination";
 import type { Publisher } from "@/lib/types/manager";
@@ -43,6 +44,7 @@ export default function PublishersPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   const loadPublishers = useCallback(async () => {
     try {
@@ -144,7 +146,7 @@ export default function PublishersPage() {
   const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Издательства</h1>
         <Button onClick={openCreate}>
@@ -170,8 +172,8 @@ export default function PublishersPage() {
           {search ? "Ничего не найдено" : "Издательства не добавлены"}
         </div>
       ) : (
-        <>
-          <div className="rounded-lg border">
+        <div className="flex flex-col flex-1 min-h-0">
+          <div ref={tableRef} className="rounded-lg border overflow-auto flex-1 min-h-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -201,7 +203,7 @@ export default function PublishersPage() {
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{publisher.name}</TableCell>
+                    <TableCell className="font-medium"><Link href={`/publisher/${encodeURIComponent(publisher.name)}`} className="hover:underline">{publisher.name}</Link></TableCell>
                     <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-xs truncate">
                       {publisher.description || "—"}
                     </TableCell>
@@ -221,8 +223,8 @@ export default function PublishersPage() {
               </TableBody>
             </Table>
           </div>
-          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </>
+          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} tableRef={tableRef} />
+        </div>
       )}
 
       {/* Lightbox */}

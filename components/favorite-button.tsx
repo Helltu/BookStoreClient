@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useFavoriteStore } from "@/store/useFavoriteStore";
 import { useAuthStore } from "@/store/useAuthStore";
 import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import apiClient from "@/lib/api/axios";
+import { useWishlistStore } from "@/store/useWishlistStore";
 
 interface FavoriteButtonProps {
   book: {
@@ -23,41 +24,59 @@ interface FavoriteButtonProps {
 export function FavoriteButton({ book, variant = "default", className }: FavoriteButtonProps) {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
-  const { items, addItem, removeItem } = useFavoriteStore();
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { increment, decrement } = useWishlistStore();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (!isAuthenticated || user?.role === "MANAGER") return;
+    apiClient
+      .get("/users/me/wishlist", { skipErrorToast: true } as any)
+      .then((res) => {
+        const items: { id: string }[] = res.data || [];
+        setIsFavorite(items.some((i) => i.id === book.id));
+      })
+      .catch(() => {});
+  }, [isAuthenticated, user, book.id]);
+
   if (user?.role === "MANAGER") return null;
 
-  const isFavorite = items.some((item) => item.bookId === book.id);
-
-  const toggleFavorite = (e?: React.MouseEvent) => {
+  const toggleFavorite = async (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
     if (!isAuthenticated) {
-      toast.error("Требуется авторизация", {
-        description: "Пожалуйста, войдите в аккаунт."
-      });
+      toast.error("Требуется авторизация", { description: "Пожалуйста, войдите в аккаунт." });
       router.push("/login");
       return;
     }
 
-    if (isFavorite) {
-      removeItem(book.id);
-      toast.info(`Книга "${book.title}" удалена из избранного`);
-    } else {
-      addItem({ bookId: book.id, title: book.title, price: book.price, coverUrl: book.coverUrl });
-      toast.success(`Книга "${book.title}" добавлена в избранное!`);
+    setIsLoading(true);
+    try {
+      if (isFavorite) {
+        await apiClient.delete(`/users/me/wishlist/${book.id}`);
+        setIsFavorite(false);
+        decrement();
+        toast.info(`Книга "${book.title}" удалена из избранного`);
+      } else {
+        await apiClient.post(`/users/me/wishlist/${book.id}`, {});
+        setIsFavorite(true);
+        increment();
+        toast.success(`Книга "${book.title}" добавлена в избранное!`);
+      }
+    } catch {
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Рендерим заглушку до монтирования, чтобы избежать ошибок гидратации
   if (!mounted) {
     if (variant === "card") {
       return (
@@ -71,10 +90,9 @@ export function FavoriteButton({ book, variant = "default", className }: Favorit
         </Button>
       );
     }
-
     return (
-        <Button variant="outline" size="lg" className={cn("gap-2 shrink-0", className)}>
-          <Heart size={18} />
+      <Button variant="outline" size="lg" className={cn("gap-2 shrink-0", className)}>
+        <Heart size={18} />
         В избранное
       </Button>
     );
@@ -85,6 +103,7 @@ export function FavoriteButton({ book, variant = "default", className }: Favorit
       <Button
         variant="secondary"
         size="icon"
+        disabled={isLoading}
         className={cn(
           "absolute right-2 top-2 z-20 h-8 w-8 rounded-full bg-background/80 backdrop-blur-sm transition-opacity hover:bg-background sm:opacity-0 sm:group-hover:opacity-100",
           isFavorite && "opacity-100 sm:opacity-100",
@@ -99,14 +118,15 @@ export function FavoriteButton({ book, variant = "default", className }: Favorit
   }
 
   return (
-      <Button
-          size="lg"
-          variant={isFavorite ? "secondary" : "outline"}
-          onClick={toggleFavorite}
-          className={cn("gap-2 shrink-0 transition-all duration-300", isFavorite && "text-red-500 hover:text-red-600", className)}
-      >
-        <Heart className={cn(isFavorite ? "fill-current" : "")} size={18} />
-        {isFavorite ? "В избранном" : "В избранное"}
-      </Button>
+    <Button
+      size="lg"
+      variant={isFavorite ? "secondary" : "outline"}
+      onClick={toggleFavorite}
+      disabled={isLoading}
+      className={cn("gap-2 shrink-0 transition-all duration-300", isFavorite && "text-red-500 hover:text-red-600", className)}
+    >
+      <Heart className={cn(isFavorite ? "fill-current" : "")} size={18} />
+      {isFavorite ? "В избранном" : "В избранное"}
+    </Button>
   );
 }

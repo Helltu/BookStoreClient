@@ -135,7 +135,7 @@ export function ManagerBookFilterSidebar({ filters, onChange }: ManagerBookFilte
           ) : (
             <div className="flex flex-col gap-5 px-5 py-5 pb-24">
               <div className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold">Цена (BYN)</h3>
+                <h3 className="text-sm font-semibold">Цена (р.)</h3>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"

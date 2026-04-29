@@ -20,16 +20,17 @@ const SORT_OPTIONS = [
 interface CatalogSortSelectProps {
   currentSort: string;
   currentParams: string;
+  basePath?: string;
 }
 
-export function CatalogSortSelect({ currentSort, currentParams }: CatalogSortSelectProps) {
+export function CatalogSortSelect({ currentSort, currentParams, basePath = "/" }: CatalogSortSelectProps) {
   const router = useRouter();
 
   function handleChange(value: string) {
     const params = new URLSearchParams(currentParams);
     params.set("sort", value);
     params.delete("page");
-    router.push(`/?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   }
 
   return (

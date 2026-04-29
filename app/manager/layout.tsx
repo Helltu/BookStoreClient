@@ -99,7 +99,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
         </nav>
       </div>
 
-      <main className="flex-1 p-6 overflow-auto">
+      <main id="manager-main" className="flex-1 p-6 overflow-hidden flex flex-col h-[calc(100vh-4rem)]">
         {children}
       </main>
     </div>

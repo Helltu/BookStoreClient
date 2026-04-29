@@ -3,10 +3,12 @@
 import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BookOpen, ShoppingCart, User, LogOut, Search, Settings } from "lucide-react";
+import { BookOpen, ShoppingCart, User, LogOut, Search, Settings, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useCartStore } from "@/store/useCartStore";
+import { useWishlistStore } from "@/store/useWishlistStore";
 
 function SearchBar() {
   const router = useRouter();
@@ -50,6 +52,7 @@ export function Navbar() {
   const isManager = user?.role === 'MANAGER';
 
   const items = useCartStore((state) => state.items);
+  const wishlistCount = useWishlistStore((s) => s.count);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => setMounted(true), []);
@@ -116,6 +119,17 @@ export function Navbar() {
                         <span className="hidden sm:inline-block text-sm font-medium text-muted-foreground mr-2">
                           Привет, {user?.firstName || user?.username}
                         </span>
+                        <Link href="/profile?tab=wishlist">
+                          <Button variant="ghost" size="icon" className="relative">
+                            <Heart className={cn("h-5 w-5 transition-colors", wishlistCount > 0 && "fill-red-500 text-red-500")} />
+                            {mounted && wishlistCount > 0 && (
+                              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                                {wishlistCount > 99 ? "99+" : wishlistCount}
+                              </span>
+                            )}
+                            <span className="sr-only">Избранное</span>
+                          </Button>
+                        </Link>
                         <Link href="/profile">
                           <Button variant="ghost" size="icon">
                             <User className="h-5 w-5" />

@@ -16,20 +16,24 @@ interface PaginationControlsProps {
   currentPage: number;
   totalPages: number;
   activeFilters: ActiveFilters;
+  basePath?: string;
+  lockedGenre?: string;
+  lockedAuthor?: string;
+  lockedPublisher?: string;
 }
 
-export function PaginationControls({ currentPage, totalPages, activeFilters }: PaginationControlsProps) {
+export function PaginationControls({ currentPage, totalPages, activeFilters, basePath = "/", lockedGenre, lockedAuthor, lockedPublisher }: PaginationControlsProps) {
   const createPageUrl = (pageIndex: number) => {
     const params = new URLSearchParams();
     if (pageIndex > 0) params.set("page", pageIndex.toString());
     if (activeFilters.query) params.set("query", activeFilters.query);
-    activeFilters.genres.forEach(g => params.append("genres", g));
-    activeFilters.authors.forEach(a => params.append("authors", a));
-    if (activeFilters.publisher) params.set("publisher", activeFilters.publisher);
+    activeFilters.genres.filter(g => g !== lockedGenre).forEach(g => params.append("genres", g));
+    activeFilters.authors.filter(a => a !== lockedAuthor).forEach(a => params.append("authors", a));
+    if (!lockedPublisher && activeFilters.publisher) params.set("publisher", activeFilters.publisher);
     if (activeFilters.minPrice) params.set("minPrice", activeFilters.minPrice);
     if (activeFilters.maxPrice) params.set("maxPrice", activeFilters.maxPrice);
     if (activeFilters.inStock) params.set("inStock", "true");
-    return `/?${params.toString()}`;
+    return `${basePath}?${params.toString()}`;
   };
 
   const getPages = (): (number | "...")[] => {

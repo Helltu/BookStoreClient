@@ -84,8 +84,17 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground leading-tight">
                 {book.title}
               </h1>
-              <p className="text-xl sm:text-2xl text-muted-foreground">
-                {book.authors?.join(", ") || "Неизвестный автор"}
+              <p className="text-xl sm:text-2xl text-muted-foreground flex flex-wrap gap-1">
+                {book.authors && book.authors.length > 0
+                  ? book.authors.map((author, idx) => (
+                      <span key={idx}>
+                        <Link href={`/author/${encodeURIComponent(author)}`} className="hover:text-foreground transition-colors">
+                          {author}
+                        </Link>
+                        {idx < book.authors.length - 1 && ", "}
+                      </span>
+                    ))
+                  : "Неизвестный автор"}
               </p>
             </div>
 
@@ -113,12 +122,13 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
             {book.genres && book.genres.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-8">
                 {book.genres.map((genre, idx) => (
-                  <span
+                  <Link
                     key={idx}
-                    className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-primary/10 text-primary"
+                    href={`/genre/${encodeURIComponent(genre)}`}
+                    className="inline-flex items-center rounded-full px-3 py-1 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
                   >
                     {genre}
-                  </span>
+                  </Link>
                 ))}
               </div>
             )}
@@ -141,7 +151,7 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
     <span className="text-4xl font-bold tracking-tight">
       {book.price.toFixed(2)}
     </span>
-                <span className="text-xl text-muted-foreground font-medium">BYN</span>
+                <span className="text-xl text-muted-foreground font-medium">р.</span>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3">
@@ -187,7 +197,9 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
                     <Building className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Издательство</span>
-                      <span className="font-medium text-sm">{book.publisher}</span>
+                      <Link href={`/publisher/${encodeURIComponent(book.publisher)}`} className="font-medium text-sm hover:text-primary transition-colors">
+                        {book.publisher}
+                      </Link>
                     </div>
                   </div>
                 )}

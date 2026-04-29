@@ -28,6 +28,10 @@ interface ActiveFilters {
 interface CatalogFilterSidebarProps {
   activeFilters: ActiveFilters;
   currentSort?: string;
+  basePath?: string;
+  lockedGenre?: string;
+  lockedAuthor?: string;
+  lockedPublisher?: string;
 }
 
 interface FilterData {
@@ -37,7 +41,7 @@ interface FilterData {
   priceRange: { min: number; max: number };
 }
 
-export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilterSidebarProps) {
+export function CatalogFilterSidebar({ activeFilters, currentSort, basePath = "/", lockedGenre, lockedAuthor, lockedPublisher }: CatalogFilterSidebarProps) {
   const router = useRouter();
   const [minPrice, setMinPrice] = useState(activeFilters.minPrice);
   const [maxPrice, setMaxPrice] = useState(activeFilters.maxPrice);
@@ -77,14 +81,15 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
     const merged = { ...activeFilters, ...overrides };
     const params = new URLSearchParams();
     if (merged.query) params.set("query", merged.query);
-    merged.genres.forEach(g => params.append("genres", g));
-    merged.authors.forEach(a => params.append("authors", a));
-    if (merged.publisher) params.set("publisher", merged.publisher);
+    merged.genres.filter(g => g !== lockedGenre).forEach(g => params.append("genres", g));
+    merged.authors.filter(a => a !== lockedAuthor).forEach(a => params.append("authors", a));
+    const pub = lockedPublisher ? "" : merged.publisher;
+    if (pub) params.set("publisher", pub);
     if (merged.minPrice) params.set("minPrice", merged.minPrice);
     if (merged.maxPrice) params.set("maxPrice", merged.maxPrice);
     if (merged.inStock) params.set("inStock", "true");
     if (currentSort && currentSort !== "newest") params.set("sort", currentSort);
-    return `/?${params.toString()}`;
+    return `${basePath}?${params.toString()}`;
   }
 
   function toggleGenre(genre: string) {
@@ -115,21 +120,25 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
     if (currentSort && currentSort !== "newest") params.set("sort", currentSort);
     setMinPrice("");
     setMaxPrice("");
-    router.push(`/?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   }
 
+  const freeGenres = activeFilters.genres.filter(g => g !== lockedGenre);
+  const freeAuthors = activeFilters.authors.filter(a => a !== lockedAuthor);
+  const freePublisher = lockedPublisher ? "" : activeFilters.publisher;
+
   const hasActiveFilters =
-    activeFilters.genres.length > 0 ||
-    activeFilters.authors.length > 0 ||
-    !!activeFilters.publisher ||
+    freeGenres.length > 0 ||
+    freeAuthors.length > 0 ||
+    !!freePublisher ||
     !!activeFilters.minPrice ||
     !!activeFilters.maxPrice ||
     activeFilters.inStock;
 
   const activeCount =
-    activeFilters.genres.length +
-    activeFilters.authors.length +
-    (activeFilters.publisher ? 1 : 0) +
+    freeGenres.length +
+    freeAuthors.length +
+    (freePublisher ? 1 : 0) +
     (activeFilters.minPrice || activeFilters.maxPrice ? 1 : 0) +
     (activeFilters.inStock ? 1 : 0);
 
@@ -177,7 +186,7 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
 
               {/* Price Range */}
               <div className="flex flex-col gap-3">
-                <h3 className="text-sm font-semibold">Цена (BYN)</h3>
+                <h3 className="text-sm font-semibold">Цена (р.)</h3>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -203,7 +212,7 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
                 </div>
               </div>
 
-              {genres.length > 0 && (
+              {genres.length > 0 && !lockedGenre && (
                 <>
                   <Separator />
                   <div className="flex flex-col gap-2">
@@ -231,7 +240,7 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
                 </>
               )}
 
-              {authors.length > 0 && (
+              {authors.length > 0 && !lockedAuthor && (
                 <>
                   <Separator />
                   <div className="flex flex-col gap-2">
@@ -259,7 +268,7 @@ export function CatalogFilterSidebar({ activeFilters, currentSort }: CatalogFilt
                 </>
               )}
 
-              {publishers.length > 0 && (
+              {publishers.length > 0 && !lockedPublisher && (
                 <>
                   <Separator />
                   <div className="flex flex-col gap-2">

@@ -95,7 +95,20 @@ export function BookCard({ book }: { book: Book }) {
       <div className="flex flex-1 flex-col p-4">
         <h3 className="font-semibold leading-tight tracking-tight line-clamp-1">{book.title}</h3>
         <p className="mt-1 text-sm text-muted-foreground line-clamp-1">
-          {book.authors?.join(", ") || "Неизвестный автор"}
+          {book.authors && book.authors.length > 0
+            ? book.authors.map((author, idx) => (
+                <span key={idx}>
+                  <Link
+                    href={`/author/${encodeURIComponent(author)}`}
+                    className="relative z-20 hover:text-foreground transition-colors"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    {author}
+                  </Link>
+                  {idx < book.authors.length - 1 && ", "}
+                </span>
+              ))
+            : "Неизвестный автор"}
         </p>
         
         {/* Рейтинг и отзывы */}
@@ -108,7 +121,7 @@ export function BookCard({ book }: { book: Book }) {
         </div>
 
         <div className="mt-auto pt-4 flex items-center justify-between">
-          <span className="text-lg font-bold">{book.price ? `${book.price.toFixed(2)} BYN` : "Бесплатно"}</span>
+          <span className="text-lg font-bold">{book.price ? `${book.price.toFixed(2)} р.` : "Бесплатно"}</span>
           {!isManager && (
             mounted && isInCart ? (
               <Button asChild variant="secondary" size="sm" className="relative z-20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">

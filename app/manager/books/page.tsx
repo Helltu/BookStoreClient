@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Plus, Pencil, Trash2, Search, Package, ChevronUp, ChevronDown, ChevronsUpDown, X, Download } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -76,6 +76,7 @@ export default function BooksPage() {
   const [adjusting, setAdjusting] = useState(false);
 
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
 
   const loadBooks = useCallback(async () => {
     setLoading(true);
@@ -165,7 +166,7 @@ export default function BooksPage() {
   const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Книги</h1>
         <div className="flex gap-2">
@@ -221,8 +222,8 @@ export default function BooksPage() {
           {search || inStockOnly ? "Ничего не найдено" : "Книги не добавлены"}
         </div>
       ) : (
-        <>
-          <div className="rounded-lg border overflow-x-auto">
+        <div className="flex flex-col flex-1 min-h-0">
+          <div ref={tableRef} className="rounded-lg border overflow-auto flex-1 min-h-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -260,22 +261,26 @@ export default function BooksPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <div className="font-medium">{book.title}</div>
+                      <Link href={`/book/${book.id}`} className="font-medium hover:underline">{book.title}</Link>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         ISBN: {book.isbn || "—"}
                       </div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <span className="text-sm text-muted-foreground">
-                        {book.authors?.join(", ") || "—"}
+                        {book.authors?.map((a, i) => (
+                          <span key={i}>{i > 0 && ", "}<Link href={`/author/${encodeURIComponent(a)}`} className="hover:underline">{a}</Link></span>
+                        )) || "—"}
                       </span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {(book.genres ?? []).slice(0, 3).map((g, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">
+                          <Link key={i} href={`/genre/${encodeURIComponent(g)}`}>
+                          <Badge variant="secondary" className="text-xs hover:bg-secondary/80 cursor-pointer">
                             {g}
                           </Badge>
+                          </Link>
                         ))}
                         {(book.genres ?? []).length > 3 && (
                           <Badge variant="outline" className="text-xs">
@@ -285,7 +290,7 @@ export default function BooksPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-semibold whitespace-nowrap">
-                      {book.price.toFixed(2)} BYN
+                      {book.price.toFixed(2)} р.
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
                       <Badge variant={(book.stockQuantity ?? 0) > 0 ? "default" : "destructive"} className="text-xs">
@@ -314,8 +319,8 @@ export default function BooksPage() {
             </Table>
           </div>
 
-          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </>
+          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} tableRef={tableRef} />
+        </div>
       )}
 
       {/* Import by ISBN */}
@@ -337,7 +342,7 @@ export default function BooksPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="import-price">Цена (BYN) *</Label>
+              <Label htmlFor="import-price">Цена (р.) *</Label>
               <Input
                 id="import-price"
                 type="number"

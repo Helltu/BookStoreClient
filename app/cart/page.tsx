@@ -58,7 +58,7 @@ export default function CartPage() {
                   {item.title}
                 </Link>
                 <div className="text-muted-foreground font-medium mt-1">
-                  {item.price.toFixed(2)} BYN
+                  {item.price.toFixed(2)} р.
                 </div>
               </div>
 
@@ -73,7 +73,7 @@ export default function CartPage() {
                   </Button>
                 </div>
                 <div className="w-24 text-right font-bold text-lg hidden sm:block">
-                  {(item.price * item.quantity).toFixed(2)} BYN
+                  {(item.price * item.quantity).toFixed(2)} р.
                 </div>
                 <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive hover:bg-destructive/10" onClick={() => removeItem(item.bookId)}>
                   <Trash2 className="h-4 w-4" />
@@ -95,13 +95,13 @@ export default function CartPage() {
             <div className="space-y-3 text-sm mb-6">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Товары ({totalItems})</span>
-                <span>{totalPrice.toFixed(2)} BYN</span>
+                <span>{totalPrice.toFixed(2)} р.</span>
               </div>
             </div>
             <Separator className="mb-4" />
             <div className="flex justify-between items-center mb-8">
               <span className="font-bold text-lg">Итого</span>
-              <span className="font-bold text-2xl">{totalPrice.toFixed(2)} BYN</span>
+              <span className="font-bold text-2xl">{totalPrice.toFixed(2)} р.</span>
             </div>
             
             <Button className="w-full text-lg h-12" asChild>

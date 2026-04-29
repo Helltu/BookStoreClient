@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Plus, Pencil, Trash2, Search, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import Link from "next/link";
 import { genresApi } from "@/lib/api/manager";
 import { ManagerPagination } from "@/components/manager/manager-pagination";
 import type { Genre } from "@/lib/types/manager";
@@ -35,6 +36,7 @@ export default function GenresPage() {
   const [formName, setFormName] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const tableRef = useRef<HTMLDivElement>(null);
   const [deleteTarget, setDeleteTarget] = useState<Genre | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -120,7 +122,7 @@ export default function GenresPage() {
   const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   return (
-    <div>
+    <div className="flex flex-col h-full">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Жанры</h1>
         <Button onClick={openCreate}>
@@ -146,8 +148,8 @@ export default function GenresPage() {
           {search ? "Ничего не найдено" : "Жанры не добавлены"}
         </div>
       ) : (
-        <>
-          <div className="rounded-lg border">
+        <div className="flex flex-col flex-1 min-h-0">
+          <div ref={tableRef} className="rounded-lg border overflow-auto flex-1 min-h-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -161,7 +163,7 @@ export default function GenresPage() {
               <TableBody>
                 {paginated.map((genre) => (
                   <TableRow key={genre.id}>
-                    <TableCell className="font-medium">{genre.name}</TableCell>
+                    <TableCell className="font-medium"><Link href={`/genre/${encodeURIComponent(genre.name)}`} className="hover:underline">{genre.name}</Link></TableCell>
                     <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{genre.id}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -178,8 +180,8 @@ export default function GenresPage() {
               </TableBody>
             </Table>
           </div>
-          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} />
-        </>
+          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} tableRef={tableRef} />
+        </div>
       )}
 
       {/* Create / Edit dialog */}

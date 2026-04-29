@@ -488,7 +488,7 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="price">Цена (BYN) *</Label>
+            <Label htmlFor="price">Цена (р.) *</Label>
             <Input
               id="price"
               type="number"
