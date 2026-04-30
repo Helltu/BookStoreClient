@@ -19,9 +19,10 @@ interface FavoriteButtonProps {
   };
   variant?: "default" | "card";
   className?: string;
+  onRemove?: () => void;
 }
 
-export function FavoriteButton({ book, variant = "default", className }: FavoriteButtonProps) {
+export function FavoriteButton({ book, variant = "default", className, onRemove }: FavoriteButtonProps) {
   const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
   const [isFavorite, setIsFavorite] = useState(false);
@@ -65,6 +66,7 @@ export function FavoriteButton({ book, variant = "default", className }: Favorit
         setIsFavorite(false);
         decrement();
         toast.info(`Книга "${book.title}" удалена из избранного`);
+        onRemove?.();
       } else {
         await apiClient.post(`/users/me/wishlist/${book.id}`, {});
         setIsFavorite(true);

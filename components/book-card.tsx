@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Star, Heart, ShoppingCart, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,10 +22,9 @@ export interface Book {
   stockQuantity?: number;
 }
 
-export function BookCard({ book }: { book: Book }) {
-  const router = useRouter();
-  const { items: cartItems, addItem: addCartItem } = useCartStore();
-  const { isAuthenticated, user } = useAuthStore();
+export function BookCard({ book, onRemoveFromWishlist }: { book: Book; onRemoveFromWishlist?: () => void }) {
+  const { items: cartItems, addItem: addCartItem, removeItem } = useCartStore();
+  const { user } = useAuthStore();
   const isManager = user?.role === "MANAGER";
 
   const [mounted, setMounted] = useState(false);
@@ -37,24 +35,16 @@ export function BookCard({ book }: { book: Book }) {
 
   const isInCart = cartItems.some((item) => item.bookId === book.id);
 
-  const requireAuth = (action: () => void) => {
-    if (!isAuthenticated) {
-      toast.error("Требуется авторизация", {
-        description: "Пожалуйста, войдите в аккаунт или зарегистрируйтесь для этого действия."
-      });
-      // Укажите правильный путь на страницу входа
-      router.push("/login");
-      return;
-    }
-    action();
-  };
-
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    requireAuth(() => {
-      addCartItem({ bookId: book.id, title: book.title, price: book.price, coverUrl: book.coverUrl });
-      toast.success(`Книга "${book.title}" добавлена в корзину!`);
-    });
+    addCartItem({ bookId: book.id, title: book.title, price: book.price, coverUrl: book.coverUrl, authors: book.authors, averageRating: book.averageRating, totalReviews: book.totalReviews, stockQuantity: book.stockQuantity });
+    toast.success(`Книга "${book.title}" добавлена в корзину!`);
+  };
+
+  const handleRemoveFromCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    removeItem(book.id);
+    toast.info(`Книга "${book.title}" удалена из корзины.`);
   };
 
   return (
@@ -63,7 +53,7 @@ export function BookCard({ book }: { book: Book }) {
         <span className="sr-only">Открыть {book.title}</span>
       </Link>
       
-      {!isManager && <FavoriteButton book={book} variant="card" />}
+      {!isManager && <FavoriteButton book={book} variant="card" onRemove={onRemoveFromWishlist} />}
 
       {/* Обложка книги с фиксированной высотой */}
       <div className="relative h-72 w-full overflow-hidden bg-muted">
@@ -124,11 +114,9 @@ export function BookCard({ book }: { book: Book }) {
           <span className="text-lg font-bold">{book.price ? `${book.price.toFixed(2)} р.` : "Бесплатно"}</span>
           {!isManager && (
             mounted && isInCart ? (
-              <Button asChild variant="secondary" size="sm" className="relative z-20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors">
-                <Link href="/cart">
-                  <Check className="mr-1.5 h-4 w-4" />
-                  В корзине
-                </Link>
+              <Button variant="secondary" size="sm" className="relative z-20 bg-primary/10 text-primary hover:bg-primary/20 transition-colors" onClick={handleRemoveFromCart}>
+                <Check className="mr-1.5 h-4 w-4" />
+                В корзине
               </Button>
             ) : (
               <Button size="sm" className="relative z-20" onClick={handleAddToCart}>

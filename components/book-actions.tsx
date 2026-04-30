@@ -12,9 +12,13 @@ interface BookActionsProps {
   title: string;
   price: number;
   coverUrl?: string;
+  authors?: string[];
+  averageRating?: number;
+  totalReviews?: number;
+  stockQuantity?: number;
 }
 
-export function BookActions({ bookId, title, price, coverUrl }: BookActionsProps) {
+export function BookActions({ bookId, title, price, coverUrl, authors, averageRating, totalReviews, stockQuantity }: BookActionsProps) {
   const { items, addItem, removeItem } = useCartStore();
   const user = useAuthStore((state) => state.user);
   const [mounted, setMounted] = useState(false);
@@ -28,9 +32,11 @@ export function BookActions({ bookId, title, price, coverUrl }: BookActionsProps
   const isInCart = items.some((item) => item.bookId === bookId);
 
   const handleAddToCart = () => {
-    addItem({ bookId, title, price, coverUrl });
+    addItem({ bookId, title, price, coverUrl, authors, averageRating, totalReviews, stockQuantity });
     toast.success(`Книга "${title}" добавлена в корзину!`);
   };
+
+
 
   const handleRemoveFromCart = () => {
     removeItem(bookId);

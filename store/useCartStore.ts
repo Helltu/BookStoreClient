@@ -7,6 +7,10 @@ export interface CartItem {
   price: number;
   coverUrl?: string;
   quantity: number;
+  authors?: string[];
+  averageRating?: number;
+  totalReviews?: number;
+  stockQuantity?: number;
 }
 
 interface CartState {
@@ -14,6 +18,7 @@ interface CartState {
   addItem: (item: Omit<CartItem, 'quantity'>) => void;
   removeItem: (bookId: string) => void;
   updateQuantity: (bookId: string, quantity: number) => void;
+  updateStockQuantity: (bookId: string, stockQuantity: number) => void;
   clearCart: () => void;
 }
 
@@ -33,6 +38,11 @@ export const useCartStore = create<CartState>()(
           }
           return { items: [...state.items, { ...newItem, quantity: 1 }] };
         });
+      },
+      updateStockQuantity: (bookId, stockQuantity) => {
+        set((state) => ({
+          items: state.items.map((item) => item.bookId === bookId ? { ...item, stockQuantity } : item),
+        }));
       },
       removeItem: (bookId) => {
         set((state) => ({ items: state.items.filter((item) => item.bookId !== bookId) }));

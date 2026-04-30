@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Trash2, Plus, Heart, MapPin, Lock, User, ShoppingCart, Check } from "lucide-react";
+import { Pencil, Trash2, Plus, Heart, MapPin, Lock, User, ShoppingCart, Check, Package, ChevronDown, ChevronUp } from "lucide-react";
 import apiClient from "@/lib/api/axios";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -11,24 +11,26 @@ import { useWishlistStore } from "@/store/useWishlistStore";
 import { useCartStore } from "@/store/useCartStore";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { AddressFormLIQ, AddressResult } from "@/components/address-form";
+import { BookItemCard } from "@/components/book-item-card";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Address {
   id: string;
-  street: string;
-  city: string;
-  state?: string;
-  postalCode: string;
-  country: string;
+  addressText: string;
 }
 
 interface WishlistBook {
   id: string;
   title: string;
   author?: string;
+  authors?: string[];
   cost: number;
   coverImageUrl?: string;
+  averageRating?: number;
+  totalReviews?: number;
+  stockQuantity?: number;
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -251,51 +253,26 @@ function PasswordTab() {
 
 // ─── Tab: Addresses ───────────────────────────────────────────────────────────
 
-const emptyAddress = { street: "", city: "", state: "", postalCode: "", country: "" };
-
-function AddressForm({
-  initial,
-  onSave,
-  onCancel,
-}: {
-  initial: typeof emptyAddress;
-  onSave: (data: typeof emptyAddress) => Promise<void>;
-  onCancel: () => void;
-}) {
-  const [form, setForm] = useState(initial);
+function NewAddressPanel({ onSave, onCancel }: { onSave: (r: AddressResult) => Promise<void>; onCancel: () => void }) {
+  const [result, setResult] = useState<AddressResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const f = (field: keyof typeof emptyAddress) => (v: string) =>
-    setForm((p) => ({ ...p, [field]: v }));
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
+    if (!result) return;
     setIsLoading(true);
-    try {
-      await onSave(form);
-    } finally {
-      setIsLoading(false);
-    }
+    try { await onSave(result); } finally { setIsLoading(false); }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 p-4 border rounded-lg bg-muted/30">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <InputField label="Улица" value={form.street} onChange={f("street")} />
-        <InputField label="Город" value={form.city} onChange={f("city")} />
-        <InputField label="Регион / штат" value={form.state} onChange={f("state")} />
-        <InputField label="Почтовый индекс" value={form.postalCode} onChange={f("postalCode")} />
-        <InputField label="Страна" value={form.country} onChange={f("country")} />
-      </div>
-      <div className="flex gap-2">
-        <Button type="submit" size="sm" disabled={isLoading}>
+    <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+      <AddressFormLIQ onChange={setResult} />
+      <div className="flex gap-2 pt-1">
+        <Button size="sm" disabled={isLoading || !result} onClick={handleSave}>
           {isLoading ? "Сохранение..." : "Сохранить"}
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-          Отмена
-        </Button>
+        <Button size="sm" variant="ghost" onClick={onCancel}>Отмена</Button>
       </div>
-    </form>
+    </div>
   );
 }
 
@@ -303,7 +280,6 @@ function AddressesTab() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -317,17 +293,12 @@ function AddressesTab() {
 
   useEffect(() => { load(); }, []);
 
-  const handleAdd = async (data: typeof emptyAddress) => {
-    await apiClient.post("/users/me/addresses", data);
+  const handleAdd = async (r: AddressResult) => {
+    const apt = r.apartment ? `, кв. ${r.apartment}` : "";
+    const addressText = `${r.country}, ${r.city}${r.state ? `, ${r.state}` : ""}, ${r.street}${apt}${r.postalCode ? `, ${r.postalCode}` : ""}`;
+    await apiClient.post("/users/me/addresses", { addressText });
     toast.success("Адрес добавлен");
     setShowAddForm(false);
-    load();
-  };
-
-  const handleEdit = async (id: string, data: typeof emptyAddress) => {
-    await apiClient.patch(`/users/me/addresses/${id}`, data);
-    toast.success("Адрес обновлён");
-    setEditingId(null);
     load();
   };
 
@@ -344,34 +315,20 @@ function AddressesTab() {
       {addresses.length === 0 && !showAddForm && (
         <p className="text-sm text-muted-foreground">Адресов нет</p>
       )}
-      {addresses.map((addr) =>
-        editingId === addr.id ? (
-          <AddressForm
-            key={addr.id}
-            initial={{ street: addr.street, city: addr.city, state: addr.state || "", postalCode: addr.postalCode, country: addr.country }}
-            onSave={(data) => handleEdit(addr.id, data)}
-            onCancel={() => setEditingId(null)}
-          />
-        ) : (
-          <div key={addr.id} className="flex items-start justify-between p-4 border rounded-lg">
-            <div className="text-sm space-y-0.5">
-              <p className="font-medium">{addr.street}</p>
-              <p className="text-muted-foreground">{addr.city}{addr.state ? `, ${addr.state}` : ""}, {addr.postalCode}</p>
-              <p className="text-muted-foreground">{addr.country}</p>
-            </div>
-            <div className="flex gap-1 shrink-0 ml-4">
-              <Button variant="ghost" size="icon" onClick={() => setEditingId(addr.id)}>
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={() => handleDelete(addr.id)}>
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
+      {addresses.map((addr) => (
+        <div key={addr.id} className="flex items-start justify-between p-4 border rounded-lg">
+          <div className="text-sm">
+            <p>{addr.addressText}</p>
           </div>
-        )
-      )}
+          <div className="flex gap-1 shrink-0 ml-4">
+            <Button variant="ghost" size="icon" onClick={() => handleDelete(addr.id)}>
+              <Trash2 className="h-4 w-4 text-destructive" />
+            </Button>
+          </div>
+        </div>
+      ))}
       {showAddForm ? (
-        <AddressForm initial={emptyAddress} onSave={handleAdd} onCancel={() => setShowAddForm(false)} />
+        <NewAddressPanel onSave={handleAdd} onCancel={() => setShowAddForm(false)} />
       ) : (
         <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowAddForm(true)}>
           <Plus className="h-4 w-4" />
@@ -382,18 +339,188 @@ function AddressesTab() {
   );
 }
 
-// ─── Tab: Wishlist ────────────────────────────────────────────────────────────
+// ─── Tab: Orders ─────────────────────────────────────────────────────────────
 
-function WishlistTab() {
-  const [items, setItems] = useState<WishlistBook[]>([]);
+type OrderStatus = "NEW" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "RETURN_REQUESTED" | "RETURNED";
+
+interface OrderItem {
+  id: string;
+  bookId: string;
+  bookTitle: string;
+  isbn: string;
+  quantity: number;
+  pricePerItem: number;
+}
+
+interface Order {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  totalCost: number;
+  createdAt: string;
+  orderItems: OrderItem[];
+  deliveryDetails: {
+    customerName: string;
+    contactPhone: string;
+    addressText: string;
+    deliveryTimeSlot?: string;
+    deliveryDate?: string;
+  };
+}
+
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  NEW: "Новый",
+  PROCESSING: "В обработке",
+  SHIPPED: "Доставляется",
+  DELIVERED: "Доставлен",
+  CANCELLED: "Отменён",
+  RETURN_REQUESTED: "Запрос возврата",
+  RETURNED: "Возвращён",
+};
+
+const STATUS_COLORS: Record<OrderStatus, string> = {
+  NEW: "bg-blue-100 text-blue-700",
+  PROCESSING: "bg-yellow-100 text-yellow-700",
+  SHIPPED: "bg-purple-100 text-purple-700",
+  DELIVERED: "bg-green-100 text-green-700",
+  CANCELLED: "bg-red-100 text-red-700",
+  RETURN_REQUESTED: "bg-orange-100 text-orange-700",
+  RETURNED: "bg-gray-100 text-gray-700",
+};
+
+function OrderItemCard({ item }: { item: OrderItem }) {
+  const [coverUrl, setCoverUrl] = useState<string | undefined>(undefined);
+  const [authors, setAuthors] = useState<string[] | undefined>(undefined);
+  const [averageRating, setAverageRating] = useState<number | undefined>(undefined);
+  const [totalReviews, setTotalReviews] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (!item.bookId) return;
+    apiClient.get(`/catalog/books/${item.bookId}`).then((res) => {
+      const b = res.data;
+setCoverUrl(b.coverUrl ?? undefined);
+      setAuthors(b.authors ?? undefined);
+      setAverageRating(b.averageRating ?? undefined);
+      setTotalReviews(b.totalReviews ?? undefined);
+    }).catch(() => {});
+  }, [item.bookId]);
+
+  return (
+    <BookItemCard
+      item={{
+        bookId: item.bookId,
+        title: item.bookTitle,
+        price: item.pricePerItem,
+        quantity: item.quantity,
+        coverUrl,
+        authors,
+        averageRating,
+        totalReviews,
+      }}
+    />
+  );
+}
+
+function OrderCard({ order, onRefresh }: { order: Order; onRefresh: () => void }) {
+  const [expanded, setExpanded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+
+  const handleCancel = async () => {
+    setIsLoading(true);
+    try {
+      await apiClient.patch(`/orders/${order.id}/cancel`);
+      toast.success("Заказ отменён");
+      onRefresh();
+    } catch {
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleReturnRequest = async () => {
+    setIsLoading(true);
+    try {
+      await apiClient.patch(`/orders/${order.id}/return-request`);
+      toast.success("Запрос на возврат отправлен");
+      onRefresh();
+    } catch {
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors text-left"
+        onClick={() => setExpanded((p) => !p)}
+      >
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-medium text-sm">{order.orderNumber}</span>
+          <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_COLORS[order.status])}>
+            {STATUS_LABELS[order.status]}
+          </span>
+          <span className="text-sm text-muted-foreground">
+            {new Date(order.createdAt).toLocaleDateString("ru-RU")}
+          </span>
+          <span className="text-sm font-semibold">{order.totalCost.toFixed(2)} р.</span>
+        </div>
+        {expanded ? <ChevronUp className="h-4 w-4 shrink-0" /> : <ChevronDown className="h-4 w-4 shrink-0" />}
+      </button>
+
+      {expanded && (
+        <div className="px-4 pb-4 space-y-4 border-t pt-4">
+          <div>
+            <p className="text-xs text-muted-foreground mb-2 font-medium uppercase tracking-wide">Товары</p>
+            <div className="space-y-3">
+              {(order.orderItems ?? []).length === 0
+                ? <p className="text-sm text-muted-foreground">Нет данных о товарах</p>
+                : (order.orderItems ?? []).map((item) => <OrderItemCard key={item.id} item={item} />)
+              }
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wide">Доставка</p>
+            <p className="text-sm">{order.deliveryDetails.customerName}</p>
+            <p className="text-sm text-muted-foreground">{order.deliveryDetails.contactPhone}</p>
+            <p className="text-sm text-muted-foreground">{order.deliveryDetails.addressText}</p>
+            {order.deliveryDetails.deliveryDate && (
+              <p className="text-sm text-muted-foreground">
+                {order.deliveryDetails.deliveryDate}
+                {order.deliveryDetails.deliveryTimeSlot ? `, ${order.deliveryDetails.deliveryTimeSlot}` : ""}
+              </p>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            {order.status === "NEW" && (
+              <Button size="sm" variant="destructive" disabled={isLoading} onClick={handleCancel}>
+                Отменить заказ
+              </Button>
+            )}
+            {order.status === "DELIVERED" && (
+              <Button size="sm" variant="outline" disabled={isLoading} onClick={handleReturnRequest}>
+                Запросить возврат
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OrdersTab() {
+  const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const decrement = useWishlistStore((s) => s.decrement);
-  const { items: cartItems, addItem: addToCart } = useCartStore();
 
   const load = async () => {
     try {
-      const res = await apiClient.get("/users/me/wishlist");
-      setItems(res.data || []);
+      const res = await apiClient.get("/orders/my");
+setOrders(res.data || []);
     } catch {
     } finally {
       setIsLoading(false);
@@ -402,70 +529,68 @@ function WishlistTab() {
 
   useEffect(() => { load(); }, []);
 
-  const handleRemove = async (id: string) => {
-    await apiClient.delete(`/users/me/wishlist/${id}`);
-    setItems((p) => p.filter((i) => i.id !== id));
-    decrement();
-    toast.info("Книга удалена из избранного");
+  if (isLoading) return <p className="text-sm text-muted-foreground">Загрузка...</p>;
+  if (orders.length === 0) return <p className="text-sm text-muted-foreground">Заказов ещё нет</p>;
+
+  return (
+    <div className="space-y-3 max-w-2xl">
+      {orders.map((order) => (
+        <OrderCard key={order.id} order={order} onRefresh={load} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Tab: Wishlist ────────────────────────────────────────────────────────────
+
+function WishlistTab() {
+  const [items, setItems] = useState<WishlistBook[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { decrement } = useWishlistStore();
+
+  const load = async () => {
+    try {
+      const res = await apiClient.get("/users/me/wishlist");
+      const wishlist: WishlistBook[] = res.data || [];
+      const full = await Promise.all(
+        wishlist.map((w) =>
+          apiClient.get(`/catalog/books/${w.id}`).then((r) => ({
+            ...w,
+            authors: r.data.authors,
+            averageRating: r.data.averageRating,
+            totalReviews: r.data.totalReviews,
+            stockQuantity: r.data.stockQuantity,
+          })).catch(() => w)
+        )
+      );
+      setItems(full);
+    } catch {
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  useEffect(() => { load(); }, []);
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Загрузка...</p>;
   if (items.length === 0) return <p className="text-sm text-muted-foreground">Список желаемого пуст</p>;
 
+  const handleRemove = async (bookId: string) => {
+    await apiClient.delete(`/users/me/wishlist/${bookId}`);
+    setItems((p) => p.filter((i) => i.id !== bookId));
+    decrement();
+    toast.info("Книга удалена из избранного");
+  };
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      {items.map((item) => {
-        const inCart = cartItems.some((c) => c.bookId === item.id);
-        return (
-          <div key={item.id} className="flex gap-4 p-4 border rounded-lg">
-            <Link href={`/book/${item.id}`} className="shrink-0">
-              {item.coverImageUrl ? (
-                <img src={item.coverImageUrl} alt={item.title} className="h-32 w-22 object-cover rounded" />
-              ) : (
-                <div className="h-32 w-22 bg-muted rounded flex items-center justify-center">
-                  <Heart className="h-6 w-6 text-muted-foreground" />
-                </div>
-              )}
-            </Link>
-            <div className="flex flex-col justify-between flex-1 min-w-0">
-              <div>
-                <Link href={`/book/${item.id}`} className="font-medium hover:underline line-clamp-2 leading-snug">
-                  {item.title}
-                </Link>
-                {item.author && <p className="text-sm text-muted-foreground mt-1">{item.author}</p>}
-              </div>
-              <div className="mt-3 space-y-2">
-                <p className="text-lg font-bold">{item.cost.toFixed(2)} р.</p>
-                <div className="flex gap-2">
-                  {inCart ? (
-                    <Button asChild size="sm" variant="secondary" className="gap-1.5 flex-1">
-                      <Link href="/cart">
-                        <Check className="h-3.5 w-3.5" />
-                        В корзине
-                      </Link>
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      className="gap-1.5 flex-1"
-                      onClick={() => {
-                        addToCart({ bookId: item.id, title: item.title, price: item.cost, coverUrl: item.coverImageUrl });
-                        toast.success("Добавлено в корзину");
-                      }}
-                    >
-                      <ShoppingCart className="h-3.5 w-3.5" />
-                      В корзину
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => handleRemove(item.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
+      {items.map((item) => (
+        <BookItemCard
+          key={item.id}
+          item={{ bookId: item.id, title: item.title, price: item.cost, quantity: 1, coverUrl: item.coverImageUrl, authors: item.authors ?? (item.author ? [item.author] : []), averageRating: item.averageRating, totalReviews: item.totalReviews, stockQuantity: item.stockQuantity }}
+          onRemoveFromWishlist={handleRemove}
+        />
+      ))}
     </div>
   );
 }
@@ -477,6 +602,7 @@ const TABS = [
   { id: "info", label: "Личные данные", icon: User },
   { id: "password", label: "Пароль", icon: Lock },
   { id: "addresses", label: "Адреса", icon: MapPin },
+  { id: "orders", label: "Мои заказы", icon: Package },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -534,6 +660,7 @@ function ProfileContent() {
       {activeTab === "password" && <PasswordTab />}
       {activeTab === "addresses" && <AddressesTab />}
       {activeTab === "wishlist" && <WishlistTab />}
+      {activeTab === "orders" && <OrdersTab />}
     </div>
   );
 }

@@ -160,6 +160,10 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
                     title={book.title}
                     price={book.price}
                     coverUrl={book.coverUrl}
+                    authors={book.authors}
+                    averageRating={book.averageRating}
+                    totalReviews={book.totalReviews}
+                    stockQuantity={book.stockQuantity}
                 />
                 <FavoriteButton
                     className="w-full sm:w-auto"
