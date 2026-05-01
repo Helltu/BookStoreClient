@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Plus, Pencil, Trash2, Search, Package, ChevronUp, ChevronDown, ChevronsUpDown, X, Download } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,7 @@ function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: 
 
 export default function BooksPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [books, setBooks] = useState<ManagedBook[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -66,7 +67,10 @@ export default function BooksPage() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortField, setSortField] = useState<SortField>("title");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [bookFilters, setBookFilters] = useState({ genres: [] as string[], authors: [] as string[], publisher: "", minPrice: "", maxPrice: "" });
+  const [bookFilters, setBookFilters] = useState(() => {
+    const genre = searchParams.get("genre");
+    return { genres: genre ? [genre] : [] as string[], authors: [] as string[], publisher: "", minPrice: "", maxPrice: "" };
+  });
 
   const [deleteTarget, setDeleteTarget] = useState<ManagedBook | null>(null);
   const [deleting, setDeleting] = useState(false);

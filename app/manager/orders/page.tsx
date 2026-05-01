@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Search, ChevronUp, ChevronDown, ChevronsUpDown,
   Eye, CalendarDays, CheckCircle, XCircle, ArrowRight, Package,
@@ -126,6 +127,7 @@ function OrderItemCard({ item }: { item: { id: string; bookId: string; bookTitle
 }
 
 export default function OrdersPage() {
+  const searchParams = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
@@ -133,8 +135,11 @@ export default function OrdersPage() {
   const [totalElements, setTotalElements] = useState(0);
 
   const [filterNumber, setFilterNumber] = useState("");
-  const [filterCustomer, setFilterCustomer] = useState("");
-  const [filterStatus, setFilterStatus] = useState<OrderStatus | "ALL">("ALL");
+  const [filterCustomer, setFilterCustomer] = useState(() => searchParams.get("customer") ?? "");
+  const [filterStatus, setFilterStatus] = useState<OrderStatus | "ALL">(() => {
+    const s = searchParams.get("status");
+    return (s as OrderStatus) ?? "ALL";
+  });
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
 

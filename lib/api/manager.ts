@@ -116,6 +116,56 @@ export const booksApi = {
 
 export type CatalogEntity = 'genres' | 'authors' | 'publishers' | 'books';
 
+export interface AnalyticsParams {
+  startDate?: string;
+  endDate?: string;
+  lowStockThreshold?: number;
+}
+
+export interface AnalyticsResponse {
+  summary: {
+    totalOrders: number;
+    totalRevenue: string;
+    totalBooksSold: number;
+    averageCheck: string;
+    avgDeliveryHours: number;
+  };
+  periodComparison: {
+    totalOrdersDelta: number | null;
+    totalRevenueDelta: number | null;
+    totalBooksSoldDelta: number | null;
+    averageCheckDelta: number | null;
+  } | null;
+  salesOverTime: { date: string; value: string }[];
+  salesByCategory: { category: string; count: number }[];
+  topSellingBooks: { title: string; soldCount: number }[];
+  slowMovingBooks: { title: string; soldCount: number }[];
+  ordersByStatus: Record<string, number>;
+  customerMetrics: {
+    uniqueCustomers: number;
+    topCustomers: { username: string; fullName: string; ordersCount: number; totalSpent: string }[];
+  };
+  returnMetrics: {
+    returnRequested: number;
+    returned: number;
+    returnedRevenue: string;
+  };
+  stockMetrics: {
+    outOfStockCount: number;
+    lowStockBooks: { title: string; stockQuantity: number }[];
+  };
+}
+
+export const analyticsApi = {
+  get: (params?: AnalyticsParams) => {
+    const p = new URLSearchParams();
+    if (params?.startDate) p.set('startDate', params.startDate);
+    if (params?.endDate) p.set('endDate', params.endDate);
+    if (params?.lowStockThreshold !== undefined) p.set('lowStockThreshold', String(params.lowStockThreshold));
+    return apiClient.get<AnalyticsResponse>(`/analytics?${p}`);
+  },
+};
+
 export const importExportApi = {
   export: (entity: CatalogEntity) =>
     apiClient.get(`/catalog/io/export/${entity}`, { responseType: 'blob' }),
