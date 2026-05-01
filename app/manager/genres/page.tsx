@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Search, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: 
 }
 
 export default function GenresPage() {
+  const router = useRouter();
   const [genres, setGenres] = useState<Genre[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -162,15 +164,16 @@ export default function GenresPage() {
               </TableHeader>
               <TableBody>
                 {paginated.map((genre) => (
-                  <TableRow key={genre.id}>
+                  <TableRow key={genre.id} className="cursor-pointer hover:bg-muted/40" onClick={() => router.push(`/genre/${encodeURIComponent(genre.name)}`)}>
+
                     <TableCell className="font-medium"><Link href={`/genre/${encodeURIComponent(genre.name)}`} className="hover:underline">{genre.name}</Link></TableCell>
                     <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{genre.id}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(genre)}>
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEdit(genre); }}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(genre)}>
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget(genre); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>

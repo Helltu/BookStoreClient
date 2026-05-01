@@ -61,8 +61,8 @@ export default function BooksPage() {
   const importValid = importIsbn.trim().length > 0 && parseFloat(importPrice) > 0 && parseInt(importStock) >= 0;
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [search, setSearch] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sortField, setSortField] = useState<SortField>("title");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -104,18 +104,17 @@ export default function BooksPage() {
   useEffect(() => { loadBooks(); }, [loadBooks]);
 
   useEffect(() => {
+    const timer = setTimeout(() => { setPage(0); setSearch(searchInput.trim()); }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
     if (!lightboxUrl) return;
     const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setLightboxUrl(null); };
     window.addEventListener("keydown", handler);
     document.body.style.overflow = "hidden";
     return () => { window.removeEventListener("keydown", handler); document.body.style.overflow = ""; };
   }, [lightboxUrl]);
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPage(0);
-    setSearch(searchInput.trim());
-  };
 
   const toggleSort = (field: SortField) => {
     setPage(0);
@@ -184,18 +183,20 @@ export default function BooksPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <form onSubmit={handleSearch} className="relative flex gap-2">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Поиск по ID, названию, ISBN..."
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              className="pl-9 w-72"
-            />
-          </div>
-          <Button type="submit" variant="secondary">Найти</Button>
-        </form>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Поиск по ID, названию, ISBN..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="pl-9 w-72"
+          />
+        </div>
+
+        <ManagerBookFilterSidebar
+          filters={bookFilters}
+          onChange={(f) => { setPage(0); setBookFilters(f); }}
+        />
 
         <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
           <input
@@ -206,13 +207,6 @@ export default function BooksPage() {
           />
           Только в наличии
         </label>
-
-        <div className="ml-auto">
-          <ManagerBookFilterSidebar
-            filters={bookFilters}
-            onChange={(f) => { setPage(0); setBookFilters(f); }}
-          />
-        </div>
       </div>
 
       {loading ? (
@@ -245,7 +239,8 @@ export default function BooksPage() {
               </TableHeader>
               <TableBody>
                 {books.map((book) => (
-                  <TableRow key={book.id}>
+                  <TableRow key={book.id} className="cursor-pointer hover:bg-muted/40" onClick={() => router.push(`/book/${book.id}`)}>
+
                     <TableCell>
                       {book.coverUrl ? (
                         <img
@@ -300,15 +295,15 @@ export default function BooksPage() {
                     <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{book.id}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" title="Изменить остаток" onClick={() => openStockDialog(book)}>
+                        <Button variant="ghost" size="icon" title="Изменить остаток" onClick={(e) => { e.stopPropagation(); openStockDialog(book); }}>
                           <Package className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" asChild>
+                        <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
                           <Link href={`/manager/books/${book.id}/edit`}>
                             <Pencil className="h-4 w-4" />
                           </Link>
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(book)}>
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget(book); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>

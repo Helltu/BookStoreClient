@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Search, Upload, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: 
 }
 
 export default function AuthorsPage() {
+  const router = useRouter();
   const [authors, setAuthors] = useState<Author[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -188,7 +190,8 @@ export default function AuthorsPage() {
               </TableHeader>
               <TableBody>
                 {paginated.map((author) => (
-                  <TableRow key={author.id}>
+                  <TableRow key={author.id} className="cursor-pointer hover:bg-muted/40" onClick={() => router.push(`/author/${encodeURIComponent(author.name)}`)}>
+
                     <TableCell>
                       {author.photoUrl ? (
                         <img
@@ -210,10 +213,10 @@ export default function AuthorsPage() {
                     <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{author.id}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(author)}>
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEdit(author); }}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(author)}>
+                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget(author); }}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>

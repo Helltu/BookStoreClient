@@ -5,6 +5,7 @@ import { CatalogSortSelect } from "@/components/catalog-sort-select";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, User } from "lucide-react";
+import { ManagerEditButton } from "@/components/manager-edit-button";
 
 interface PaginatedBooks {
   content: Book[];
@@ -49,7 +50,7 @@ async function getBooks(filters: ActiveFilters & { page: number; sort: string })
 }
 
 async function getAuthor(name: string): Promise<{ id: string; name: string; biography?: string; photoUrl?: string } | null> {
-  const res = await fetch("http://localhost:8080/api/catalog/authors", { next: { revalidate: 300 } });
+  const res = await fetch("http://localhost:8080/api/catalog/authors", { next: { revalidate: 300, tags: ["authors"] } });
   if (!res.ok) return null;
   const authors: { id: string; name: string; biography?: string; photoUrl?: string }[] = await res.json();
   return authors.find(a => a.name === name) ?? null;
@@ -105,7 +106,8 @@ export default async function AuthorCatalogPage(props: {
 
   return (
     <div className="flex flex-col flex-1 p-8">
-      <main className="flex flex-col gap-8 w-full max-w-7xl mx-auto">
+      <main className="relative flex flex-col gap-8 w-full max-w-7xl mx-auto">
+        <ManagerEditButton type="author" id={author.id} name={author.name} biography={author.biography} className="absolute top-0 right-0" />
         <nav aria-label="Breadcrumb" className="flex items-center text-sm text-muted-foreground">
           <Link href="/" className="hover:text-foreground transition-colors">Каталог</Link>
           <ChevronRight className="h-4 w-4 mx-1 shrink-0" />

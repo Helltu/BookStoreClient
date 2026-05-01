@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Users, Tag, Building, LayoutDashboard } from "lucide-react";
+import { BookOpen, Users, Tag, Building, LayoutDashboard, ShoppingCart } from "lucide-react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ const navItems = [
   { href: "/manager/authors", label: "Авторы", icon: Users },
   { href: "/manager/genres", label: "Жанры", icon: Tag },
   { href: "/manager/publishers", label: "Издательства", icon: Building },
+  { href: "/manager/orders", label: "Заказы", icon: ShoppingCart },
 ];
 
 export default function ManagerLayout({ children }: { children: React.ReactNode }) {
@@ -99,7 +100,7 @@ export default function ManagerLayout({ children }: { children: React.ReactNode 
         </nav>
       </div>
 
-      <main id="manager-main" className="flex-1 p-6 overflow-hidden flex flex-col h-[calc(100vh-4rem)]">
+      <main id="manager-main" className="flex-1 p-6 overflow-y-auto flex flex-col h-[calc(100vh-4rem)]">
         {children}
       </main>
     </div>

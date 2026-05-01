@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Star, ChevronRight, BookOpen, Hash, Calendar, Building, Globe, User } from "lucide-react";
 import { BookActions } from "@/components/book-actions";
 import { FavoriteButton } from "@/components/favorite-button";
+import { ManagerEditButton } from "@/components/manager-edit-button";
 import { BookGallery } from "@/components/book-gallery";
 import { cn } from "@/lib/utils";
 
@@ -59,7 +60,8 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
 
   return (
     <div className="flex flex-col flex-1 p-4 sm:p-8 bg-background">
-      <div className="w-full max-w-6xl mx-auto flex flex-col gap-6 sm:gap-10">
+      <div className="relative w-full max-w-6xl mx-auto flex flex-col gap-6 sm:gap-10">
+        <ManagerEditButton type="book" id={book.id} className="absolute top-0 right-0" />
 
         {/* Хлебные крошки */}
         <nav aria-label="Breadcrumb" className="flex items-center text-sm text-muted-foreground overflow-x-auto whitespace-nowrap pb-2">
