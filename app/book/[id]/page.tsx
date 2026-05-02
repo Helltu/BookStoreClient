@@ -1,20 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Star, ChevronRight, BookOpen, Hash, Calendar, Building, Globe, User } from "lucide-react";
+import { ChevronRight, BookOpen, Hash, Calendar, Building, Globe, Star } from "lucide-react";
 import { BookActions } from "@/components/book-actions";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ManagerEditButton } from "@/components/manager-edit-button";
 import { BookGallery } from "@/components/book-gallery";
+import { BookReviews } from "@/components/book-reviews";
 import { cn } from "@/lib/utils";
-
-// Расширенный интерфейс для детальной информации о книге
-interface Review {
-  id: string;
-  userName: string;
-  rating: number;
-  comment: string;
-  date: string;
-}
 
 interface BookDetail {
   id: string;
@@ -31,7 +23,6 @@ interface BookDetail {
   pageCount?: number;
   isbn?: string;
   language?: string;
-  reviews?: Review[];
   genres?: string[];
   stockQuantity?: number;
 }
@@ -247,50 +238,7 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
           </div>
         </div>
 
-        {/* Секция отзывов */}
-        <div className="mt-12 pt-10 border-t">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Отзывы читателей</h2>
-            <span className="bg-primary/10 text-primary text-sm font-semibold px-3 py-1 rounded-full">
-              {book.reviews?.length || 0}
-            </span>
-          </div>
-
-          {(!book.reviews || book.reviews.length === 0) ? (
-            <div className="bg-muted/20 border border-dashed rounded-2xl p-12 flex flex-col items-center justify-center text-center">
-              <Star className="h-12 w-12 text-muted-foreground/30 mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Нет отзывов</h3>
-              <p className="text-muted-foreground max-w-sm">На эту книгу пока никто не оставил отзыв. Станьте первым, кто поделится своими впечатлениями!</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              {book.reviews.map((review) => (
-                <div key={review.id} className="bg-card border rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <User className="h-5 w-5" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-sm">{review.userName}</span>
-                        <span className="text-xs text-muted-foreground">{review.date}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex mb-3 gap-0.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={cn("h-4 w-4", review.rating >= star ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30")}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-sm text-foreground/90 leading-relaxed">{review.comment}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <BookReviews bookId={book.id} />
       </div>
     </div>
   );

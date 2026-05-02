@@ -486,7 +486,10 @@ export default function OrdersPage() {
                       className="w-full justify-start"
                       variant="outline"
                       onClick={() => setStatusDialogOpen(true)}
-                      disabled={NEXT_STATUS[selectedOrder.status] === "SHIPPED" && !selectedOrder.deliveryDetails?.deliveryDate}
+                      disabled={
+                        (NEXT_STATUS[selectedOrder.status] === "SHIPPED" && !selectedOrder.deliveryDetails?.deliveryDate) ||
+                        (NEXT_STATUS[selectedOrder.status] === "DELIVERED" && (!selectedOrder.deliveryDetails?.deliveryDate || !selectedOrder.deliveryDetails?.deliveryTimeSlot))
+                      }
                     >
                       <ArrowRight className="h-4 w-4 mr-2" />
                       Перевести в «{STATUS_LABELS[NEXT_STATUS[selectedOrder.status]!]}»

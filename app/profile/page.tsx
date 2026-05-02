@@ -502,7 +502,7 @@ function OrderCard({ order, onRefresh }: { order: Order; onRefresh: () => void }
               </Button>
             )}
             {order.status === "DELIVERED" && (
-              <Button size="sm" variant="outline" disabled={isLoading} onClick={handleReturnRequest}>
+              <Button size="sm" variant="destructive" disabled={isLoading} onClick={handleReturnRequest}>
                 Запросить возврат
               </Button>
             )}
