@@ -5,7 +5,8 @@ export type OrderStatus =
   | "DELIVERED"
   | "CANCELLED"
   | "RETURN_REQUESTED"
-  | "RETURNED";
+  | "RETURNED"
+  | "FAILED";
 
 export type DeliverySlot = "MORNING" | "AFTERNOON" | "EVENING";
 

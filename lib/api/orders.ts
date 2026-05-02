@@ -21,6 +21,9 @@ export const ordersApi = {
   setDeliverySlot: (id: string, deliveryDate: string, timeSlot: string) =>
     apiClient.patch<void>(`/orders/${id}/delivery-slot`, { deliveryDate, timeSlot }),
 
+  ship: (id: string, deliveryDate: string, timeSlot: string) =>
+    apiClient.patch<void>(`/orders/${id}/ship`, { deliveryDate, timeSlot }),
+
   approveReturn: (id: string) =>
     apiClient.patch<void>(`/orders/${id}/return-approve`),
 

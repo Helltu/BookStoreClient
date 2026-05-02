@@ -31,6 +31,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: "Отменён",
   RETURN_REQUESTED: "Запрос возврата",
   RETURNED: "Возвращён",
+  FAILED: "Доставка не удалась",
 };
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
@@ -41,11 +42,11 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   CANCELLED: "bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400",
   RETURN_REQUESTED: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
   RETURNED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  FAILED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
 };
 
 const NEXT_STATUS: Partial<Record<OrderStatus, OrderStatus>> = {
   NEW: "PROCESSING",
-  PROCESSING: "SHIPPED",
   SHIPPED: "DELIVERED",
 };
 
@@ -233,12 +234,24 @@ export default function OrdersPage() {
 
   const handleAdvanceStatus = async () => {
     if (!selectedOrder) return;
-    const next = NEXT_STATUS[selectedOrder.status];
-    if (!next) return;
     setStatusSaving(true);
     try {
-      await ordersApi.updateStatus(selectedOrder.id, next);
-      toast.success(`Статус обновлён: ${STATUS_LABELS[next]}`);
+      if (["PROCESSING", "FAILED"].includes(selectedOrder.status)) {
+        await ordersApi.ship(
+          selectedOrder.id,
+          selectedOrder.deliveryDetails.deliveryDate!,
+          SLOT_LABELS[selectedOrder.deliveryDetails.deliveryTimeSlot as DeliverySlot],
+        );
+        toast.success(`Статус обновлён: ${STATUS_LABELS["SHIPPED"]}`);
+      } else if (selectedOrder.status === "SHIPPED") {
+        await ordersApi.updateStatus(selectedOrder.id, "FAILED");
+        toast.success(`Статус обновлён: ${STATUS_LABELS["FAILED"]}`);
+      } else {
+        const next = NEXT_STATUS[selectedOrder.status];
+        if (!next) return;
+        await ordersApi.updateStatus(selectedOrder.id, next);
+        toast.success(`Статус обновлён: ${STATUS_LABELS[next]}`);
+      }
       setStatusDialogOpen(false);
       await refreshSelected(selectedOrder.id);
     } catch {
@@ -260,6 +273,18 @@ export default function OrdersPage() {
       // handled by interceptor
     } finally {
       setSlotSaving(false);
+    }
+  };
+
+
+  const handleCancel = async () => {
+    if (!selectedOrder) return;
+    try {
+      await ordersApi.updateStatus(selectedOrder.id, "CANCELLED");
+      toast.success("Заказ отменён");
+      await refreshSelected(selectedOrder.id);
+    } catch {
+      // handled by interceptor
     }
   };
 
@@ -297,9 +322,7 @@ export default function OrdersPage() {
   const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   const hasActions = selectedOrder && (
-    !!NEXT_STATUS[selectedOrder.status] ||
-    ["NEW", "PROCESSING", "SHIPPED"].includes(selectedOrder.status) ||
-    selectedOrder.status === "RETURN_REQUESTED"
+    ["NEW", "PROCESSING", "SHIPPED", "FAILED", "RETURN_REQUESTED"].includes(selectedOrder.status)
   );
 
   return (
@@ -481,21 +504,49 @@ export default function OrdersPage() {
               {/* Actions pinned to bottom */}
               {hasActions && (
                 <div className="absolute bottom-0 left-0 right-0 border-t bg-background px-5 py-4 flex flex-col gap-2">
+                  {/* NEW → PROCESSING */}
                   {NEXT_STATUS[selectedOrder.status] && (
                     <Button
                       className="w-full justify-start"
                       variant="outline"
                       onClick={() => setStatusDialogOpen(true)}
                       disabled={
-                        (NEXT_STATUS[selectedOrder.status] === "SHIPPED" && !selectedOrder.deliveryDetails?.deliveryDate) ||
-                        (NEXT_STATUS[selectedOrder.status] === "DELIVERED" && (!selectedOrder.deliveryDetails?.deliveryDate || !selectedOrder.deliveryDetails?.deliveryTimeSlot))
+                        NEXT_STATUS[selectedOrder.status] === "DELIVERED" &&
+                        (!selectedOrder.deliveryDetails?.deliveryDate || !selectedOrder.deliveryDetails?.deliveryTimeSlot)
                       }
                     >
                       <ArrowRight className="h-4 w-4 mr-2" />
                       Перевести в «{STATUS_LABELS[NEXT_STATUS[selectedOrder.status]!]}»
                     </Button>
                   )}
-                  {["NEW", "PROCESSING", "SHIPPED"].includes(selectedOrder.status) && (
+                  {/* PROCESSING → SHIPPED, FAILED → SHIPPED (через /ship) */}
+                  {["PROCESSING", "FAILED"].includes(selectedOrder.status) && (
+                    <Button
+                      className="w-full justify-start"
+                      variant="outline"
+                      onClick={() => setStatusDialogOpen(true)}
+                      disabled={!selectedOrder.deliveryDetails?.deliveryDate || !selectedOrder.deliveryDetails?.deliveryTimeSlot}
+                    >
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Перевести в «{STATUS_LABELS["SHIPPED"]}»
+                    </Button>
+                  )}
+                  {/* SHIPPED → FAILED */}
+                  {selectedOrder.status === "SHIPPED" && (
+                    <Button className="w-full justify-start" variant="outline" onClick={() => setStatusDialogOpen(true)}>
+                      <XCircle className="h-4 w-4 mr-2 text-destructive" />
+                      Отметить как «{STATUS_LABELS["FAILED"]}»
+                    </Button>
+                  )}
+                  {/* Отмена */}
+                  {["NEW", "PROCESSING", "FAILED"].includes(selectedOrder.status) && (
+                    <Button className="w-full justify-start" variant="outline" onClick={handleCancel}>
+                      <XCircle className="h-4 w-4 mr-2 text-destructive" />
+                      Отменить заказ
+                    </Button>
+                  )}
+                  {/* Назначить/изменить доставку */}
+                  {["NEW", "PROCESSING", "SHIPPED", "FAILED"].includes(selectedOrder.status) && (
                     <Button className="w-full justify-start" variant="outline" onClick={openSlotDialog}>
                       <CalendarDays className="h-4 w-4 mr-2" />
                       {selectedOrder.deliveryDetails.deliveryDate ? "Изменить доставку" : "Назначить доставку"}
