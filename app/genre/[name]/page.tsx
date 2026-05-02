@@ -24,7 +24,7 @@ interface ActiveFilters {
 }
 
 async function getBooks(filters: ActiveFilters & { page: number; sort: string }): Promise<PaginatedBooks> {
-  const url = new URL("http://localhost:8080/api/catalog/search");
+  const url = new URL(`${process.env.BACKEND_URL ?? "http://localhost:8080"}/api/catalog/search`);
   url.searchParams.append("page", filters.page.toString());
   url.searchParams.append("size", "12");
   if (filters.query) url.searchParams.append("query", filters.query);
@@ -50,7 +50,7 @@ async function getBooks(filters: ActiveFilters & { page: number; sort: string })
 }
 
 async function getGenre(name: string): Promise<{ id: string; name: string } | null> {
-  const res = await fetch("http://localhost:8080/api/catalog/genres", { next: { revalidate: 300, tags: ["genres"] } });
+  const res = await fetch(`${process.env.BACKEND_URL ?? "http://localhost:8080"}/api/catalog/genres`, { next: { revalidate: 300, tags: ["genres"] } });
   if (!res.ok) return null;
   const genres: { id: string; name: string }[] = await res.json();
   return genres.find(g => g.name === name) ?? null;

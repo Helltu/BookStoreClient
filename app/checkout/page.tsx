@@ -130,7 +130,7 @@ export default function CheckoutPage() {
               } catch { /* handled by interceptor */ }
             },
           },
-          cancel: { label: "Пропустить" },
+          cancel: { label: "Пропустить", onClick: () => {} },
         });
       }
       router.push("/profile?tab=orders");

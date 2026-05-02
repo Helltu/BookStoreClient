@@ -37,7 +37,7 @@ interface BookDetail {
 }
 
 async function getBookDetail(id: string): Promise<BookDetail | null> {
-  const res = await fetch(`http://localhost:8080/api/catalog/books/${id}`, {
+  const res = await fetch(`${process.env.BACKEND_URL ?? "http://localhost:8080"}/api/catalog/books/${id}`, {
     next: { revalidate: 60 },
   });
 

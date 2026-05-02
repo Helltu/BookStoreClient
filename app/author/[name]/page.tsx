@@ -24,7 +24,7 @@ interface ActiveFilters {
 }
 
 async function getBooks(filters: ActiveFilters & { page: number; sort: string }): Promise<PaginatedBooks> {
-  const url = new URL("http://localhost:8080/api/catalog/search");
+  const url = new URL(`${process.env.BACKEND_URL ?? "http://localhost:8080"}/api/catalog/search`);
   url.searchParams.append("page", filters.page.toString());
   url.searchParams.append("size", "12");
   if (filters.query) url.searchParams.append("query", filters.query);
@@ -50,7 +50,7 @@ async function getBooks(filters: ActiveFilters & { page: number; sort: string })
 }
 
 async function getAuthor(name: string): Promise<{ id: string; name: string; biography?: string; photoUrl?: string } | null> {
-  const res = await fetch("http://localhost:8080/api/catalog/authors", { next: { revalidate: 300, tags: ["authors"] } });
+  const res = await fetch(`${process.env.BACKEND_URL ?? "http://localhost:8080"}/api/catalog/authors`, { next: { revalidate: 300, tags: ["authors"] } });
   if (!res.ok) return null;
   const authors: { id: string; name: string; biography?: string; photoUrl?: string }[] = await res.json();
   return authors.find(a => a.name === name) ?? null;
