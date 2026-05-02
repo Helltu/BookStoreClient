@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { authorsApi } from "@/lib/api/manager";
 import { ManagerPagination } from "@/components/manager/manager-pagination";
+import { revalidateCatalogTag } from "@/app/actions/revalidate";
 import type { Author } from "@/lib/types/manager";
 
 type SortField = "name";
@@ -108,6 +109,7 @@ export default function AuthorsPage() {
         toast.success("Автор создан");
       }
       setDialogOpen(false);
+      await revalidateCatalogTag("authors");
       loadAuthors();
     } catch {
       // handled by interceptor
@@ -123,6 +125,7 @@ export default function AuthorsPage() {
       await authorsApi.delete(deleteTarget.id);
       toast.success("Автор удалён");
       setDeleteTarget(null);
+      await revalidateCatalogTag("authors");
       loadAuthors();
     } catch {
       // handled by interceptor

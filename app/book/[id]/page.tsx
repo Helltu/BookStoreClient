@@ -41,10 +41,7 @@ async function getBookDetail(id: string): Promise<BookDetail | null> {
     next: { revalidate: 60 },
   });
 
-  if (!res.ok) {
-    if (res.status === 404) return null;
-    throw new Error("Failed to fetch book");
-  }
+  if (!res.ok) return null;
 
   return res.json();
 }

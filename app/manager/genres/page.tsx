@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { genresApi } from "@/lib/api/manager";
 import { ManagerPagination } from "@/components/manager/manager-pagination";
+import { revalidateCatalogTag } from "@/app/actions/revalidate";
 import type { Genre } from "@/lib/types/manager";
 
 type SortField = "name";
@@ -85,6 +86,7 @@ export default function GenresPage() {
         toast.success("Жанр создан");
       }
       setDialogOpen(false);
+      await revalidateCatalogTag("genres");
       loadGenres();
     } catch {
       // handled by interceptor
@@ -100,6 +102,7 @@ export default function GenresPage() {
       await genresApi.delete(deleteTarget.id);
       toast.success("Жанр удалён");
       setDeleteTarget(null);
+      await revalidateCatalogTag("genres");
       loadGenres();
     } catch {
       // handled by interceptor

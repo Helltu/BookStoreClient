@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import Link from "next/link";
 import { publishersApi } from "@/lib/api/manager";
 import { ManagerPagination } from "@/components/manager/manager-pagination";
+import { revalidateCatalogTag } from "@/app/actions/revalidate";
 import type { Publisher } from "@/lib/types/manager";
 
 type SortField = "name";
@@ -108,6 +109,7 @@ export default function PublishersPage() {
         toast.success("Издательство создано");
       }
       setDialogOpen(false);
+      await revalidateCatalogTag("publishers");
       loadPublishers();
     } catch {
       // handled by interceptor
@@ -123,6 +125,7 @@ export default function PublishersPage() {
       await publishersApi.delete(deleteTarget.id);
       toast.success("Издательство удалено");
       setDeleteTarget(null);
+      await revalidateCatalogTag("publishers");
       loadPublishers();
     } catch {
       // handled by interceptor

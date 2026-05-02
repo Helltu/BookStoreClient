@@ -5,6 +5,7 @@ import { Navbar } from "@/components/navbar";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/components/auth-provider";
+import { AiConsultantWrapper } from "@/components/ai-consultant-wrapper";
 
 const geistSans = Geist({
   variable: "--font-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({
           <main className="flex-1">
             {children}
           </main>
+          <AiConsultantWrapper />
           <Toaster richColors position="top-right" />
         </AuthProvider>
       </body>
