@@ -17,6 +17,8 @@ export interface Publisher {
   logoUrl?: string;
 }
 
+export type BookFormat = "HARDCOVER" | "PAPERBACK" | "POCKET" | "LARGE_FORMAT" | "COLLECTOR";
+
 export interface ManagedBook {
   id: string;
   title: string;
@@ -25,8 +27,13 @@ export interface ManagedBook {
   isbn?: string;
   stockQuantity?: number;
   language?: string;
+  originalLanguage?: string;
   publicationYear?: number;
-  pageCount?: number;
+  pagesCount?: number;
+  format?: BookFormat;
+  weight?: number;
+  dimensions?: string;
+  ageRating?: string;
   coverUrl?: string;
   previewUrls?: string[];
   authors: string[];
@@ -43,6 +50,14 @@ export interface BookFormData {
   isbn: string;
   price: number;
   stockQuantity: number;
+  pagesCount: number | null;
+  format: BookFormat | null;
+  weight: number | null;
+  dimensions: string;
+  ageRating: string;
+  publicationYear: number | null;
+  language: string;
+  originalLanguage: string;
   authorIds: string[];
   genreIds: string[];
   publisherId: string | null;

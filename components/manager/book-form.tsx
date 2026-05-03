@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { genresApi, authorsApi, publishersApi, booksApi } from "@/lib/api/manager";
 import { toast } from "sonner";
-import type { Genre, Author, Publisher, BookFormData } from "@/lib/types/manager";
+import type { Genre, Author, Publisher, BookFormData, BookFormat } from "@/lib/types/manager";
 
 interface BookFormProps {
   bookId?: string;
@@ -21,6 +21,14 @@ interface BookFormProps {
     currentPublisherName?: string;
     coverUrl?: string;
     previewUrls?: string[];
+    pagesCount?: number | null;
+    format?: BookFormat | null;
+    weight?: number | null;
+    dimensions?: string;
+    ageRating?: string;
+    publicationYear?: number | null;
+    language?: string;
+    originalLanguage?: string;
   };
   onSubmit: (data: BookFormData) => Promise<void>;
   submitLabel: string;
@@ -38,6 +46,14 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
     price: initialData?.price ?? 0,
     isbn: initialData?.isbn ?? "",
     stockQuantity: initialData?.stockQuantity ?? 0,
+    pagesCount: initialData?.pagesCount ?? null,
+    format: initialData?.format ?? null,
+    weight: initialData?.weight ?? null,
+    dimensions: initialData?.dimensions ?? "",
+    ageRating: initialData?.ageRating ?? "",
+    publicationYear: initialData?.publicationYear ?? null,
+    language: initialData?.language ?? "",
+    originalLanguage: initialData?.originalLanguage ?? "",
     authorIds: initialData?.authorIds ?? [],
     genreIds: initialData?.genreIds ?? [],
     publisherId: initialData?.publisherId ?? null,
@@ -245,6 +261,14 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
       form.price !== init.price ||
       form.isbn !== init.isbn ||
       form.stockQuantity !== init.stockQuantity ||
+      form.pagesCount !== init.pagesCount ||
+      form.format !== init.format ||
+      form.weight !== init.weight ||
+      form.dimensions !== init.dimensions ||
+      form.ageRating !== init.ageRating ||
+      form.publicationYear !== init.publicationYear ||
+      form.language !== init.language ||
+      form.originalLanguage !== init.originalLanguage ||
       form.publisherId !== init.publisherId ||
       form.coverFile !== null ||
       form.previewFiles.length > 0 ||
@@ -517,6 +541,107 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
               value={form.isbn}
               onChange={(e) => updateField("isbn", e.target.value)}
               placeholder="978-3-16-148410-0"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Publication details */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold border-b pb-2">Детали издания</h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="publicationYear">Год издания</Label>
+            <Input
+              id="publicationYear"
+              type="number"
+              min="1000"
+              max="2100"
+              value={form.publicationYear ?? ""}
+              onChange={(e) => updateField("publicationYear", e.target.value ? parseInt(e.target.value) : null)}
+              placeholder="2024"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="pagesCount">Кол-во страниц</Label>
+            <Input
+              id="pagesCount"
+              type="number"
+              min="1"
+              value={form.pagesCount ?? ""}
+              onChange={(e) => updateField("pagesCount", e.target.value ? parseInt(e.target.value) : null)}
+              placeholder="320"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="format">Формат</Label>
+            <select
+              id="format"
+              value={form.format ?? ""}
+              onChange={(e) => updateField("format", (e.target.value as BookFormat) || null)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-sans ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <option value="">Не выбрано</option>
+              <option value="HARDCOVER">Твёрдая обложка</option>
+              <option value="PAPERBACK">Мягкая обложка</option>
+              <option value="POCKET">Карманный</option>
+              <option value="LARGE_FORMAT">Большой формат</option>
+              <option value="COLLECTOR">Коллекционный</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="language">Язык издания</Label>
+            <Input
+              id="language"
+              value={form.language}
+              onChange={(e) => updateField("language", e.target.value)}
+              placeholder="Русский"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="originalLanguage">Язык оригинала</Label>
+            <Input
+              id="originalLanguage"
+              value={form.originalLanguage}
+              onChange={(e) => updateField("originalLanguage", e.target.value)}
+              placeholder="Английский"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="weight">Вес (г)</Label>
+            <Input
+              id="weight"
+              type="number"
+              min="0"
+              step="1"
+              value={form.weight ?? ""}
+              onChange={(e) => updateField("weight", e.target.value ? parseFloat(e.target.value) : null)}
+              placeholder="350"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="dimensions">Размеры</Label>
+            <Input
+              id="dimensions"
+              value={form.dimensions}
+              onChange={(e) => updateField("dimensions", e.target.value)}
+              placeholder="21×14×2 см"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="ageRating">Возрастное ограничение</Label>
+            <Input
+              id="ageRating"
+              value={form.ageRating}
+              onChange={(e) => updateField("ageRating", e.target.value)}
+              placeholder="16+"
             />
           </div>
         </div>

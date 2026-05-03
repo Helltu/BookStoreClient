@@ -1,12 +1,22 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, BookOpen, Hash, Calendar, Building, Globe, Star } from "lucide-react";
+import { ChevronRight, BookOpen, Hash, Calendar, Building, Globe, Star, Package, FileText } from "lucide-react";
 import { BookActions } from "@/components/book-actions";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ManagerEditButton } from "@/components/manager-edit-button";
 import { BookGallery } from "@/components/book-gallery";
 import { BookReviews } from "@/components/book-reviews";
 import { cn } from "@/lib/utils";
+
+type BookFormat = "HARDCOVER" | "PAPERBACK" | "POCKET" | "LARGE_FORMAT" | "COLLECTOR";
+
+const FORMAT_LABELS: Record<BookFormat, string> = {
+  HARDCOVER: "Твёрдая обложка",
+  PAPERBACK: "Мягкая обложка",
+  POCKET: "Карманный",
+  LARGE_FORMAT: "Большой формат",
+  COLLECTOR: "Коллекционный",
+};
 
 interface BookDetail {
   id: string;
@@ -20,9 +30,14 @@ interface BookDetail {
   totalReviews?: number;
   publisher?: string;
   publicationYear?: number;
-  pageCount?: number;
+  pagesCount?: number;
   isbn?: string;
   language?: string;
+  originalLanguage?: string;
+  format?: BookFormat;
+  weight?: number;
+  dimensions?: string;
+  ageRating?: string;
   genres?: string[];
   stockQuantity?: number;
 }
@@ -206,12 +221,21 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
                     </div>
                   </div>
                 )}
-                {book.pageCount && (
+                {book.pagesCount && (
                   <div className="flex items-start gap-3">
                     <BookOpen className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Кол-во страниц</span>
-                      <span className="font-medium text-sm">{book.pageCount}</span>
+                      <span className="font-medium text-sm">{book.pagesCount}</span>
+                    </div>
+                  </div>
+                )}
+                {book.format && (
+                  <div className="flex items-start gap-3">
+                    <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Формат</span>
+                      <span className="font-medium text-sm">{FORMAT_LABELS[book.format]}</span>
                     </div>
                   </div>
                 )}
@@ -221,6 +245,42 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Язык</span>
                       <span className="font-medium text-sm">{book.language}</span>
+                    </div>
+                  </div>
+                )}
+                {book.originalLanguage && (
+                  <div className="flex items-start gap-3">
+                    <Globe className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Язык оригинала</span>
+                      <span className="font-medium text-sm">{book.originalLanguage}</span>
+                    </div>
+                  </div>
+                )}
+                {book.weight && (
+                  <div className="flex items-start gap-3">
+                    <Package className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Вес</span>
+                      <span className="font-medium text-sm">{book.weight} г</span>
+                    </div>
+                  </div>
+                )}
+                {book.dimensions && (
+                  <div className="flex items-start gap-3">
+                    <Package className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Размеры</span>
+                      <span className="font-medium text-sm">{book.dimensions}</span>
+                    </div>
+                  </div>
+                )}
+                {book.ageRating && (
+                  <div className="flex items-start gap-3">
+                    <Hash className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-muted-foreground">Возрастное ограничение</span>
+                      <span className="font-medium text-sm">{book.ageRating}</span>
                     </div>
                   </div>
                 )}
