@@ -56,7 +56,7 @@ export function BookCard({ book, onRemoveFromWishlist }: { book: Book; onRemoveF
       {!isManager && <FavoriteButton book={book} variant="card" onRemove={onRemoveFromWishlist} />}
 
       {/* Обложка книги с фиксированной высотой */}
-      <div className="relative h-72 w-full overflow-hidden bg-muted">
+      <div className="relative h-72 w-full overflow-hidden bg-white">
         {/* Бейдж наличия */}
         {book.stockQuantity === 0 && (
           <span className="absolute top-2 left-2 z-20 inline-flex items-center rounded-md bg-destructive/10 px-3 py-1 text-xs font-semibold text-destructive border border-destructive/30">
@@ -69,13 +69,12 @@ export function BookCard({ book, onRemoveFromWishlist }: { book: Book; onRemoveF
           </span>
         )}
         {book.coverUrl ? (
-          <img
-            src={book.coverUrl}
-            alt={book.title}
-            className="h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-secondary text-secondary-foreground text-sm">
+            <img
+                src={book.coverUrl}
+                alt={book.title}
+                className="h-full w-full object-contain object-center transition-transform duration-300 group-hover:scale-105 p-2"
+            />
+        ) : (          <div className="flex h-full w-full items-center justify-center bg-secondary text-secondary-foreground text-sm">
             <span>Нет обложки</span>
           </div>
         )}

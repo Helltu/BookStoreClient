@@ -8,14 +8,11 @@ import { BookGallery } from "@/components/book-gallery";
 import { BookReviews } from "@/components/book-reviews";
 import { cn } from "@/lib/utils";
 
-type BookFormat = "HARDCOVER" | "PAPERBACK" | "POCKET" | "LARGE_FORMAT" | "COLLECTOR";
+type BookFormat = "HARDCOVER" | "PAPERBACK";
 
 const FORMAT_LABELS: Record<BookFormat, string> = {
   HARDCOVER: "Твёрдая обложка",
   PAPERBACK: "Мягкая обложка",
-  POCKET: "Карманный",
-  LARGE_FORMAT: "Большой формат",
-  COLLECTOR: "Коллекционный",
 };
 
 interface BookDetail {
