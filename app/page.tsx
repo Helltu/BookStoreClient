@@ -17,6 +17,12 @@ interface ActiveFilters {
   minPrice: string;
   maxPrice: string;
   inStock: boolean;
+  language: string;
+  format: string;
+  ageRating: string;
+  minYear: string;
+  maxYear: string;
+  minRating: string;
 }
 
 async function getBooks(filters: ActiveFilters & { page: number; sort: string }): Promise<PaginatedBooks> {
@@ -30,7 +36,13 @@ async function getBooks(filters: ActiveFilters & { page: number; sort: string })
   filters.authors.forEach(a => url.searchParams.append("authors", a));
   if (filters.publisher) url.searchParams.append("publisher", filters.publisher);
   if (filters.inStock) url.searchParams.append("inStock", "true");
-  if (filters.sort && filters.sort !== "newest") {
+  if (filters.language) url.searchParams.append("language", filters.language);
+  if (filters.format) url.searchParams.append("format", filters.format);
+  if (filters.ageRating) url.searchParams.append("ageRating", filters.ageRating);
+  if (filters.minYear) url.searchParams.append("minYear", filters.minYear);
+  if (filters.maxYear) url.searchParams.append("maxYear", filters.maxYear);
+  if (filters.minRating) url.searchParams.append("minRating", filters.minRating);
+  if (filters.sort) {
     filters.sort.split(";").forEach(s => url.searchParams.append("sort", s));
   }
 
@@ -66,9 +78,15 @@ export default async function Home(props: {
   const authorsParam = searchParams?.authors;
   const authors = Array.isArray(authorsParam) ? authorsParam : authorsParam ? [authorsParam] : [];
 
-  const sort = typeof searchParams?.sort === "string" ? searchParams.sort : "newest";
+  const sort = typeof searchParams?.sort === "string" ? searchParams.sort : "createdAt,desc";
+  const language = typeof searchParams?.language === "string" ? searchParams.language : "";
+  const format = typeof searchParams?.format === "string" ? searchParams.format : "";
+  const ageRating = typeof searchParams?.ageRating === "string" ? searchParams.ageRating : "";
+  const minYear = typeof searchParams?.minYear === "string" ? searchParams.minYear : "";
+  const maxYear = typeof searchParams?.maxYear === "string" ? searchParams.maxYear : "";
+  const minRating = typeof searchParams?.minRating === "string" ? searchParams.minRating : "";
 
-  const activeFilters: ActiveFilters = { query, genres, authors, publisher, minPrice, maxPrice, inStock };
+  const activeFilters: ActiveFilters = { query, genres, authors, publisher, minPrice, maxPrice, inStock, language, format, ageRating, minYear, maxYear, minRating };
 
   const { content: books, totalPages, number: currentPage } = await getBooks({ ...activeFilters, page, sort });
 
@@ -81,6 +99,12 @@ export default async function Home(props: {
     if (minPrice) p.set("minPrice", minPrice);
     if (maxPrice) p.set("maxPrice", maxPrice);
     if (inStock) p.set("inStock", "true");
+    if (language) p.set("language", language);
+    if (format) p.set("format", format);
+    if (ageRating) p.set("ageRating", ageRating);
+    if (minYear) p.set("minYear", minYear);
+    if (maxYear) p.set("maxYear", maxYear);
+    if (minRating) p.set("minRating", minRating);
     if (sort) p.set("sort", sort);
     return p.toString();
   })();

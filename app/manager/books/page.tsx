@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Plus, Pencil, Trash2, Search, Package, ChevronUp, ChevronDown, ChevronsUpDown, X, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, ChevronUp, ChevronDown, ChevronsUpDown, X, Download, Star } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -13,12 +13,13 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { booksApi } from "@/lib/api/manager";
 import { ManagerPagination } from "@/components/manager/manager-pagination";
-import { ManagerBookFilterSidebar } from "@/components/manager/manager-book-filter-sidebar";
+import { ManagerBookFilterSidebar, type ManagerBookFilters } from "@/components/manager/manager-book-filter-sidebar";
+import { cn } from "@/lib/utils";
 import type { ManagedBook } from "@/lib/types/manager";
 
 const PAGE_SIZE = 15;
 
-type SortField = "title" | "price" | "stockQuantity";
+type SortField = "title" | "price" | "stockQuantity" | "averageRating" | "createdAt";
 type SortDir = "asc" | "desc";
 
 function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
@@ -64,12 +65,11 @@ export default function BooksPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [inStockOnly, setInStockOnly] = useState(false);
   const [sortField, setSortField] = useState<SortField>("title");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [bookFilters, setBookFilters] = useState(() => {
+  const [bookFilters, setBookFilters] = useState<ManagerBookFilters>(() => {
     const genre = searchParams.get("genre");
-    return { genres: genre ? [genre] : [] as string[], authors: [] as string[], publisher: "", minPrice: "", maxPrice: "" };
+    return { genres: genre ? [genre] : [], authors: [], publisher: "", minPrice: "", maxPrice: "", language: "", format: "", ageRating: "", minYear: "", maxYear: "", minRating: "", inStock: false };
   });
 
   const [deleteTarget, setDeleteTarget] = useState<ManagedBook | null>(null);
@@ -88,13 +88,19 @@ export default function BooksPage() {
       const res = await booksApi.getAll(
         page, PAGE_SIZE,
         search || undefined,
-        inStockOnly || undefined,
+        bookFilters.inStock || undefined,
         `${sortField},${sortDir}`,
         bookFilters.genres.length ? bookFilters.genres : undefined,
         bookFilters.authors.length ? bookFilters.authors : undefined,
         bookFilters.publisher || undefined,
         bookFilters.minPrice || undefined,
         bookFilters.maxPrice || undefined,
+        bookFilters.language || undefined,
+        bookFilters.format || undefined,
+        bookFilters.ageRating || undefined,
+        bookFilters.minYear || undefined,
+        bookFilters.maxYear || undefined,
+        bookFilters.minRating || undefined,
       );
       setBooks(res.data.content);
       setTotalPages(res.data.totalPages);
@@ -103,7 +109,7 @@ export default function BooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, inStockOnly, sortField, sortDir, bookFilters]);
+  }, [page, search, sortField, sortDir, bookFilters]);
 
   useEffect(() => { loadBooks(); }, [loadBooks]);
 
@@ -201,23 +207,13 @@ export default function BooksPage() {
           filters={bookFilters}
           onChange={(f) => { setPage(0); setBookFilters(f); }}
         />
-
-        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={inStockOnly}
-            onChange={(e) => { setPage(0); setInStockOnly(e.target.checked); }}
-            className="h-4 w-4 rounded border-input"
-          />
-          Только в наличии
-        </label>
       </div>
 
       {loading ? (
         <div className="text-center py-12 text-muted-foreground">Загрузка...</div>
       ) : books.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          {search || inStockOnly ? "Ничего не найдено" : "Книги не добавлены"}
+          {search || bookFilters.inStock ? "Ничего не найдено" : "Книги не добавлены"}
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
@@ -236,6 +232,9 @@ export default function BooksPage() {
                   </TableHead>
                   <TableHead className={`${thClass} text-right`} onClick={() => toggleSort("stockQuantity")}>
                     <span className="flex items-center justify-end">Склад <SortIcon field="stockQuantity" sortField={sortField} sortDir={sortDir} /></span>
+                  </TableHead>
+                  <TableHead className={`${thClass} hidden lg:table-cell`} onClick={() => toggleSort("averageRating")}>
+                    <span className="flex items-center">Отзывы <SortIcon field="averageRating" sortField={sortField} sortDir={sortDir} /></span>
                   </TableHead>
                   <TableHead className="hidden xl:table-cell w-72 text-muted-foreground font-normal">ID</TableHead>
                   <TableHead className="w-32 text-right">Действия</TableHead>
@@ -295,6 +294,17 @@ export default function BooksPage() {
                       <Badge variant={(book.stockQuantity ?? 0) > 0 ? "default" : "destructive"} className="text-xs">
                         {book.stockQuantity ?? 0} шт.
                       </Badge>
+                    </TableCell>
+                    <TableCell className="hidden lg:table-cell whitespace-nowrap">
+                      {(book.totalReviews ?? 0) > 0 ? (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0" />
+                          <span className="font-medium">{(book.averageRating ?? 0).toFixed(1)}</span>
+                          <span className="text-muted-foreground">({book.totalReviews})</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{book.id}</TableCell>
                     <TableCell className="text-right">

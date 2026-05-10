@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { genresApi, authorsApi, publishersApi, booksApi } from "@/lib/api/manager";
+import apiClient from "@/lib/api/axios";
+import { SearchableSelect } from "@/components/ui/searchable-select";
+import { formatBookFormat, formatAgeRating } from "@/lib/utils";
 import { toast } from "sonner";
 import type { Genre, Author, Publisher, BookFormData, BookFormat } from "@/lib/types/manager";
 
@@ -38,6 +41,9 @@ export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFor
   const [genres, setGenres] = useState<Genre[]>([]);
   const [authors, setAuthors] = useState<Author[]>([]);
   const [publishers, setPublishers] = useState<Publisher[]>([]);
+  const [supportedLanguages, setSupportedLanguages] = useState<{ code: string; name: string }[]>([]);
+  const [availableFormats, setAvailableFormats] = useState<string[]>([]);
+  const [availableAgeRatings, setAvailableAgeRatings] = useState<string[]>([]);
   const [loadingRefs, setLoadingRefs] = useState(true);
 
   const [form, setForm] = useState<BookFormData>({
@@ -162,14 +168,20 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
   useEffect(() => {
     async function loadRefs() {
       try {
-        const [g, a, p] = await Promise.all([
+        const [g, a, p, langs, fmts, ages] = await Promise.all([
           genresApi.getAll(),
           authorsApi.getAll(),
           publishersApi.getAll(),
+          apiClient.get<{ code: string; name: string }[]>("/catalog/languages/supported"),
+          apiClient.get<string[]>("/catalog/formats"),
+          apiClient.get<string[]>("/catalog/age-ratings"),
         ]);
         setGenres(g.data);
         setAuthors(a.data);
         setPublishers(p.data);
+        setSupportedLanguages(langs.data);
+        setAvailableFormats(fmts.data);
+        setAvailableAgeRatings(ages.data);
 
         if (initialData?.currentAuthorNames) {
           const matchedIds = a.data
@@ -436,9 +448,9 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
               setCoverObjectUrl(file ? URL.createObjectURL(file) : null);
             }}
           />
-          <Button type="button" variant="outline" className="w-full gap-2" onClick={() => coverInputRef.current?.click()}>
-            <Upload className="h-4 w-4" />
-            {form.coverFile ? form.coverFile.name : "Выбрать обложку"}
+          <Button type="button" variant="outline" className="w-full gap-2 overflow-hidden" onClick={() => coverInputRef.current?.click()}>
+            <Upload className="h-4 w-4 shrink-0" />
+            <span className="truncate">{form.coverFile ? form.coverFile.name : "Выбрать обложку"}</span>
           </Button>
         </div>
 
@@ -459,9 +471,9 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
           {form.previewFiles.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
               {form.previewFiles.map((file, i) => (
-                <Badge key={i} variant="secondary" className="gap-1 pr-1">
-                  {file.name}
-                  <button type="button" onClick={() => removePreviewFile(i)} className="ml-1 hover:text-destructive">
+                <Badge key={i} variant="secondary" className="gap-1 pr-1 max-w-[180px]">
+                  <span className="truncate">{file.name}</span>
+                  <button type="button" onClick={() => removePreviewFile(i)} className="ml-1 hover:text-destructive shrink-0">
                     <X className="h-3 w-3" />
                   </button>
                 </Badge>
@@ -576,39 +588,35 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
           </div>
           <div className="space-y-2">
             <Label htmlFor="format">Формат</Label>
-            <select
+            <SearchableSelect
               id="format"
               value={form.format ?? ""}
-              onChange={(e) => updateField("format", (e.target.value as BookFormat) || null)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-sans ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="">Не выбрано</option>
-              <option value="HARDCOVER">Твёрдая обложка</option>
-              <option value="PAPERBACK">Мягкая обложка</option>
-              <option value="POCKET">Карманный</option>
-              <option value="LARGE_FORMAT">Большой формат</option>
-              <option value="COLLECTOR">Коллекционный</option>
-            </select>
+              onChange={v => updateField("format", (v as BookFormat) || null)}
+              options={availableFormats.map(f => ({ value: f, label: formatBookFormat(f) }))}
+              placeholder="Не выбрано"
+            />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="language">Язык издания</Label>
-            <Input
+            <SearchableSelect
               id="language"
               value={form.language}
-              onChange={(e) => updateField("language", e.target.value)}
-              placeholder="Русский"
+              onChange={v => updateField("language", v)}
+              options={supportedLanguages.map(l => ({ value: l.code, label: l.name }))}
+              placeholder="Не выбрано"
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="originalLanguage">Язык оригинала</Label>
-            <Input
+            <SearchableSelect
               id="originalLanguage"
               value={form.originalLanguage}
-              onChange={(e) => updateField("originalLanguage", e.target.value)}
-              placeholder="Английский"
+              onChange={v => updateField("originalLanguage", v)}
+              options={supportedLanguages.map(l => ({ value: l.code, label: l.name }))}
+              placeholder="Не выбрано"
             />
           </div>
         </div>
@@ -637,11 +645,12 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
           </div>
           <div className="space-y-2">
             <Label htmlFor="ageRating">Возрастное ограничение</Label>
-            <Input
+            <SearchableSelect
               id="ageRating"
               value={form.ageRating}
-              onChange={(e) => updateField("ageRating", e.target.value)}
-              placeholder="16+"
+              onChange={v => updateField("ageRating", v)}
+              options={availableAgeRatings.map(ar => ({ value: ar, label: formatAgeRating(ar) }))}
+              placeholder="Не выбрано"
             />
           </div>
         </div>
@@ -652,17 +661,13 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
         <h2 className="text-lg font-semibold border-b pb-2">Издательство</h2>
         <div className="space-y-2">
           <Label htmlFor="publisher">Издательство</Label>
-          <select
+          <SearchableSelect
             id="publisher"
             value={form.publisherId ?? ""}
-            onChange={(e) => updateField("publisherId", e.target.value || null)}
-            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-sans ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">Не выбрано</option>
-            {publishers.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            onChange={v => updateField("publisherId", v || null)}
+            options={publishers.map(p => ({ value: p.id, label: p.name }))}
+            placeholder="Не выбрано"
+          />
         </div>
       </section>
 

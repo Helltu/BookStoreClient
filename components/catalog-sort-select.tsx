@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/select";
 
 const SORT_OPTIONS = [
-  { value: "newest", label: "Новинки" },
+  { value: "createdAt,desc", label: "Новинки" },
+  { value: "averageRating,desc", label: "Рейтинг: по убыванию" },
+  { value: "averageRating,asc", label: "Рейтинг: по возрастанию" },
   { value: "price,asc", label: "Цена: по возрастанию" },
   { value: "price,desc", label: "Цена: по убыванию" },
   { value: "title,asc", label: "Название: А–Я" },
@@ -34,7 +36,7 @@ export function CatalogSortSelect({ currentSort, currentParams, basePath = "/" }
   }
 
   return (
-    <Select value={currentSort || "newest"} onValueChange={handleChange}>
+    <Select value={currentSort || "createdAt,desc"} onValueChange={handleChange}>
       <SelectTrigger className="h-9 w-52 text-sm">
         <SelectValue placeholder="Сортировка" />
       </SelectTrigger>

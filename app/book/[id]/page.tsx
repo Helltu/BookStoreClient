@@ -1,19 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronRight, BookOpen, Hash, Calendar, Building, Globe, Star, Package, FileText } from "lucide-react";
+import { ChevronRight, BookOpen, Calendar, Building, Globe, Star, FileText, Scale, Ruler, ShieldAlert, Barcode, Languages } from "lucide-react";
 import { BookActions } from "@/components/book-actions";
 import { FavoriteButton } from "@/components/favorite-button";
 import { ManagerEditButton } from "@/components/manager-edit-button";
 import { BookGallery } from "@/components/book-gallery";
 import { BookReviews } from "@/components/book-reviews";
-import { cn } from "@/lib/utils";
+import { cn, formatBookFormat, formatAgeRating, formatLanguage, capitalize } from "@/lib/utils";
 
-type BookFormat = "HARDCOVER" | "PAPERBACK";
-
-const FORMAT_LABELS: Record<BookFormat, string> = {
-  HARDCOVER: "Твёрдая обложка",
-  PAPERBACK: "Мягкая обложка",
-};
 
 interface BookDetail {
   id: string;
@@ -31,7 +25,7 @@ interface BookDetail {
   isbn?: string;
   language?: string;
   originalLanguage?: string;
-  format?: BookFormat;
+  format?: string;
   weight?: number;
   dimensions?: string;
   ageRating?: string;
@@ -232,7 +226,7 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
                     <FileText className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Формат</span>
-                      <span className="font-medium text-sm">{FORMAT_LABELS[book.format]}</span>
+                      <span className="font-medium text-sm">{capitalize(formatBookFormat(book.format))}</span>
                     </div>
                   </div>
                 )}
@@ -241,22 +235,22 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
                     <Globe className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Язык</span>
-                      <span className="font-medium text-sm">{book.language}</span>
+                      <span className="font-medium text-sm">{capitalize(formatLanguage(book.language))}</span>
                     </div>
                   </div>
                 )}
                 {book.originalLanguage && (
                   <div className="flex items-start gap-3">
-                    <Globe className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <Languages className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Язык оригинала</span>
-                      <span className="font-medium text-sm">{book.originalLanguage}</span>
+                      <span className="font-medium text-sm">{capitalize(formatLanguage(book.originalLanguage))}</span>
                     </div>
                   </div>
                 )}
                 {book.weight && (
                   <div className="flex items-start gap-3">
-                    <Package className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <Scale className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Вес</span>
                       <span className="font-medium text-sm">{book.weight} г</span>
@@ -265,7 +259,7 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
                 )}
                 {book.dimensions && (
                   <div className="flex items-start gap-3">
-                    <Package className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <Ruler className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Размеры</span>
                       <span className="font-medium text-sm">{book.dimensions}</span>
@@ -274,16 +268,16 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
                 )}
                 {book.ageRating && (
                   <div className="flex items-start gap-3">
-                    <Hash className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <ShieldAlert className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">Возрастное ограничение</span>
-                      <span className="font-medium text-sm">{book.ageRating}</span>
+                      <span className="font-medium text-sm">{formatAgeRating(book.ageRating)}</span>
                     </div>
                   </div>
                 )}
                 {book.isbn && (
                   <div className="flex items-start gap-3">
-                    <Hash className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
+                    <Barcode className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
                     <div className="flex flex-col">
                       <span className="text-xs text-muted-foreground">ISBN</span>
                       <span className="font-medium text-sm">{book.isbn}</span>

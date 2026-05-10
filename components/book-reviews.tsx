@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -74,6 +75,9 @@ export function BookReviews({ bookId }: { bookId: string }) {
   const [text, setText] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   const fetchReviews = async () => {
     try {
       const res = await reviewsApi.getByBook(bookId);
@@ -124,13 +128,18 @@ export function BookReviews({ bookId }: { bookId: string }) {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await reviewsApi.delete(id);
+      await reviewsApi.delete(deleteTarget);
       toast.success('Отзыв удалён');
-      setReviews((prev) => prev.filter((r) => r.id !== id));
+      setReviews((prev) => prev.filter((r) => r.id !== deleteTarget));
+      setDeleteTarget(null);
     } catch {
       // interceptor shows error
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -207,7 +216,7 @@ export function BookReviews({ bookId }: { bookId: string }) {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDelete(review.id)}
+                      onClick={() => setDeleteTarget(review.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -251,6 +260,21 @@ export function BookReviews({ bookId }: { bookId: string }) {
           )}
         </>
       )}
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Удалить отзыв?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Это действие нельзя отменить.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Отмена</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? 'Удаление...' : 'Удалить'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">

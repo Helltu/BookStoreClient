@@ -53,7 +53,7 @@ export function BookGallery({ coverUrl, previewUrls = [], title }: BookGalleryPr
 
   if (allImages.length === 0) {
     return (
-      <div className="aspect-[2/3] w-full overflow-hidden rounded-2xl border bg-muted shadow-xl relative flex flex-col items-center justify-center text-muted-foreground gap-4 bg-secondary/20">
+      <div className="w-full overflow-hidden rounded-2xl border bg-muted shadow-xl relative flex flex-col items-center justify-center text-muted-foreground gap-4 bg-secondary/20 py-20">
         <BookOpen className="h-16 w-16 opacity-20" />
         <span>Нет обложки</span>
       </div>
@@ -71,12 +71,12 @@ export function BookGallery({ coverUrl, previewUrls = [], title }: BookGalleryPr
         {/* Главная обложка */}
         <div 
           onClick={() => openLightbox(0)}
-          className="relative aspect-[2/3] w-full cursor-pointer overflow-hidden rounded-2xl border bg-muted shadow-xl group"
+          className="relative w-full cursor-pointer overflow-hidden rounded-2xl border shadow-xl group"
         >
           <img
             src={allImages[0]}
             alt={`Обложка книги ${title}`}
-            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.02]"
+            className="w-full h-auto block transition-transform duration-500 group-hover:scale-[1.02]"
           />
           {/* Overlay при наведении (Увеличить) */}
           <div className="absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10 flex items-center justify-center">
@@ -88,7 +88,7 @@ export function BookGallery({ coverUrl, previewUrls = [], title }: BookGalleryPr
 
         {/* Ряд миниатюр (до 4 штук) */}
         {visibleThumbnails.length > 0 && (
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-4 gap-3 items-center">
             {visibleThumbnails.map((url, idx) => {
               const isLast = idx === 3;
               const showOverlay = isLast && remainingCount > 0;
@@ -97,12 +97,12 @@ export function BookGallery({ coverUrl, previewUrls = [], title }: BookGalleryPr
                 <div
                   key={url + idx}
                   onClick={() => openLightbox(idx + 1)}
-                  className="relative aspect-[2/3] cursor-pointer overflow-hidden rounded-md border group"
+                  className="relative cursor-pointer overflow-hidden rounded-md border group"
                 >
-                  <img 
-                    src={url} 
-                    alt={`Миниатюра ${idx + 1}`} 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                  <img
+                    src={url}
+                    alt={`Миниатюра ${idx + 1}`}
+                    className="w-full h-auto block transition-transform duration-500 group-hover:scale-110"
                   />
                   {showOverlay && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-medium text-lg backdrop-blur-[1px]">

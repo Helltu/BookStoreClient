@@ -289,9 +289,9 @@ export default function PublishersPage() {
                 className="hidden"
                 onChange={(e) => setFormLogo(e.target.files?.[0] ?? null)}
               />
-              <Button type="button" variant="outline" className="w-full gap-2" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4" />
-                {formLogo ? formLogo.name : "Выбрать файл"}
+              <Button type="button" variant="outline" className="w-full gap-2 overflow-hidden" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 shrink-0" />
+                <span className="truncate">{formLogo ? formLogo.name : "Выбрать файл"}</span>
               </Button>
               {editingPublisher?.logoUrl && !formLogo && (
                 <p className="text-xs text-muted-foreground">Текущий логотип загружен. Выберите новый файл для замены.</p>

@@ -155,8 +155,8 @@ export function ManagerEditButton(props: Props) {
                 <div className="space-y-2">
                   <Label>Фото</Label>
                   <label className="flex items-center gap-2 cursor-pointer w-fit">
-                    <Button type="button" variant="outline" size="sm" asChild>
-                      <span><Upload className="h-4 w-4 mr-1" />{authorPhoto ? authorPhoto.name : "Выбрать файл"}</span>
+                    <Button type="button" variant="outline" size="sm" className="max-w-[200px] overflow-hidden" asChild>
+                      <span className="flex items-center gap-1"><Upload className="h-4 w-4 shrink-0" /><span className="truncate">{authorPhoto ? authorPhoto.name : "Выбрать файл"}</span></span>
                     </Button>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => setAuthorPhoto(e.target.files?.[0] ?? null)} />
                   </label>
@@ -177,8 +177,8 @@ export function ManagerEditButton(props: Props) {
                 <div className="space-y-2">
                   <Label>Логотип</Label>
                   <label className="flex items-center gap-2 cursor-pointer w-fit">
-                    <Button type="button" variant="outline" size="sm" asChild>
-                      <span><Upload className="h-4 w-4 mr-1" />{pubLogo ? pubLogo.name : "Выбрать файл"}</span>
+                    <Button type="button" variant="outline" size="sm" className="max-w-[200px] overflow-hidden" asChild>
+                      <span className="flex items-center gap-1"><Upload className="h-4 w-4 shrink-0" /><span className="truncate">{pubLogo ? pubLogo.name : "Выбрать файл"}</span></span>
                     </Button>
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => setPubLogo(e.target.files?.[0] ?? null)} />
                   </label>

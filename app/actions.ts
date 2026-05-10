@@ -22,3 +22,8 @@ export async function revalidatePublisher(oldName: string, newName: string) {
   revalidatePath(`/publisher/${encodeURIComponent(newName)}`);
   revalidatePath("/");
 }
+
+export async function revalidateBook(id: string) {
+  revalidatePath(`/book/${id}`);
+  revalidatePath("/", "layout");
+}

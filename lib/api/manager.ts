@@ -55,7 +55,7 @@ export const publishersApi = {
 
 // Books (multipart/form-data for create/update)
 export const booksApi = {
-  getAll: (page: number, size: number, query?: string, inStock?: boolean, sort?: string, genres?: string[], authors?: string[], publisher?: string, minPrice?: string, maxPrice?: string) => {
+  getAll: (page: number, size: number, query?: string, inStock?: boolean, sort?: string, genres?: string[], authors?: string[], publisher?: string, minPrice?: string, maxPrice?: string, language?: string, format?: string, ageRating?: string, minYear?: string, maxYear?: string, minRating?: string) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (query) params.set('query', query);
     if (inStock) params.set('inStock', 'true');
@@ -65,6 +65,12 @@ export const booksApi = {
     if (publisher) params.set('publisher', publisher);
     if (minPrice) params.set('minPrice', minPrice);
     if (maxPrice) params.set('maxPrice', maxPrice);
+    if (language) params.set('language', language);
+    if (format) params.set('format', format);
+    if (ageRating) params.set('ageRating', ageRating);
+    if (minYear) params.set('minYear', minYear);
+    if (maxYear) params.set('maxYear', maxYear);
+    if (minRating) params.set('minRating', minRating);
     return apiClient.get<PageResponse<ManagedBook>>(`/catalog/search?${params}`);
   },
   getById: (id: string) => apiClient.get<ManagedBook>(`/catalog/books/${id}`),

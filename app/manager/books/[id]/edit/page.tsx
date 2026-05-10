@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { BookForm } from "@/components/manager/book-form";
 import { booksApi } from "@/lib/api/manager";
 import type { BookFormData, ManagedBook } from "@/lib/types/manager";
+import { revalidateBook } from "@/app/actions";
 
 export default function EditBookPage() {
   const params = useParams<{ id: string }>();
@@ -29,6 +30,7 @@ export default function EditBookPage() {
   const handleSubmit = async (data: BookFormData) => {
     try {
       await booksApi.update(params.id, data);
+      await revalidateBook(params.id);
       toast.success("Книга обновлена");
       window.location.reload();
     } catch {

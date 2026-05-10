@@ -289,9 +289,9 @@ export default function AuthorsPage() {
                 className="hidden"
                 onChange={(e) => setFormPhoto(e.target.files?.[0] ?? null)}
               />
-              <Button type="button" variant="outline" className="w-full gap-2" onClick={() => fileInputRef.current?.click()}>
-                <Upload className="h-4 w-4" />
-                {formPhoto ? formPhoto.name : "Выбрать файл"}
+              <Button type="button" variant="outline" className="w-full gap-2 overflow-hidden" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="h-4 w-4 shrink-0" />
+                <span className="truncate">{formPhoto ? formPhoto.name : "Выбрать файл"}</span>
               </Button>
               {editingAuthor?.photoUrl && !formPhoto && (
                 <p className="text-xs text-muted-foreground">Текущее фото загружено. Выберите новый файл для замены.</p>
