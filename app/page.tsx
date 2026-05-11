@@ -2,6 +2,7 @@ import { BookCard, type Book } from "@/components/book-card";
 import { PaginationControls } from "@/components/pagination-controls";
 import { CatalogFilterSidebar } from "@/components/catalog-filter-sidebar";
 import { CatalogSortSelect } from "@/components/catalog-sort-select";
+import { PersonalRecommendations } from "@/components/personal-recommendations";
 
 interface PaginatedBooks {
   content: Book[];
@@ -147,6 +148,8 @@ export default async function Home(props: {
             activeFilters={activeFilters}
           />
         )}
+
+        <PersonalRecommendations />
       </main>
     </div>
   );

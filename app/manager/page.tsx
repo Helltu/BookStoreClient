@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import {
   BookOpen, Users, Tag, Building, Download, Upload, ShoppingCart,
   TrendingUp, TrendingDown, Minus, RefreshCw, AlertTriangle,
-  Package, RotateCcw, Clock, ChevronDown, Search, X,
+  Package, RotateCcw, Clock, ChevronDown, Search, X, Wrench,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -12,7 +12,7 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, Tooltip,
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Legend,
 } from "recharts";
-import { genresApi, authorsApi, publishersApi, booksApi, importExportApi, analyticsApi, type CatalogEntity, type AnalyticsResponse } from "@/lib/api/manager";
+import { genresApi, authorsApi, publishersApi, booksApi, importExportApi, analyticsApi, maintenanceApi, type CatalogEntity, type AnalyticsResponse } from "@/lib/api/manager";
 import type { ManagedBook } from "@/lib/types/manager";
 import { ordersApi } from "@/lib/api/orders";
 import { toast } from "sonner";
@@ -104,6 +104,8 @@ export default function ManagerDashboard() {
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [ioLoading, setIoLoading] = useState<CatalogEntity | null>(null);
   const [ordersExporting, setOrdersExporting] = useState(false);
+  const [maintenanceLoading, setMaintenanceLoading] = useState<string | null>(null);
+  const [maintenanceOpen, setMaintenanceOpen] = useState(false);
   const [ioMessage, setIoMessage] = useState<{ text: string; ok: boolean } | null>(null);
   const fileInputRefs = useRef<Record<CatalogEntity, HTMLInputElement | null>>({
     genres: null, authors: null, publishers: null, books: null,
@@ -204,6 +206,14 @@ export default function ManagerDashboard() {
       URL.revokeObjectURL(url);
       toast.success("Экспорт заказов завершён");
     } catch { } finally { setOrdersExporting(false); }
+  }
+
+  async function handleMaintenance(key: string, fn: () => Promise<unknown>, label: string) {
+    setMaintenanceLoading(key);
+    try {
+      await fn();
+      toast.success(`${label}: выполнено`);
+    } catch { } finally { setMaintenanceLoading(null); }
   }
 
   // ── interactive state ────────────────────────────────────────────────────────
@@ -678,6 +688,35 @@ export default function ManagerDashboard() {
         ) : (
           <div className="rounded-xl border bg-card p-10 text-center text-muted-foreground text-sm">
             Не удалось загрузить аналитику
+          </div>
+        )}
+      </div>
+
+      {/* ── Служебные операции ── */}
+      <div className="rounded-xl border bg-card shadow-sm">
+        <button onClick={() => setMaintenanceOpen(v => !v)}
+          className="w-full flex items-center gap-2 px-5 py-3 text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Wrench className="h-4 w-4 shrink-0" />
+          <span className="font-medium">Служебные операции</span>
+          <ChevronDown className={`h-4 w-4 ml-auto transition-transform ${maintenanceOpen ? "rotate-180" : ""}`} />
+        </button>
+        {maintenanceOpen && (
+          <div className="border-t px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { key: "reindex", label: "Переиндексация ES", desc: "Обновить книги в Elasticsearch из MySQL", fn: () => maintenanceApi.reindexBooks() },
+              { key: "recreate", label: "Пересоздать индекс ES", desc: "Удалить и создать индекс заново с актуальным маппингом", fn: () => maintenanceApi.recreateIndex() },
+              { key: "cooccur", label: "Пересчёт co-occurrence", desc: "Пересчитать матрицу рекомендаций по заказам", fn: () => maintenanceApi.recomputeCoOccurrence() },
+            ].map(({ key, label, desc, fn }) => (
+              <button key={key} disabled={maintenanceLoading !== null}
+                onClick={() => handleMaintenance(key, fn, label)}
+                className="flex flex-col gap-1 rounded-lg border px-4 py-3 text-left hover:bg-muted/50 transition-colors disabled:opacity-50">
+                <span className="text-sm font-medium flex items-center gap-2">
+                  {maintenanceLoading === key && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                  {label}
+                </span>
+                <span className="text-xs text-muted-foreground">{desc}</span>
+              </button>
+            ))}
           </div>
         )}
       </div>

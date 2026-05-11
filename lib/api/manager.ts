@@ -208,3 +208,9 @@ export const importExportApi = {
     });
   },
 };
+
+export const maintenanceApi = {
+  reindexBooks: () => apiClient.post('/catalog/io/reindex/books'),
+  recreateIndex: () => apiClient.post('/catalog/io/reindex/books/recreate'),
+  recomputeCoOccurrence: () => apiClient.post('/recommendations/co-occurrence/recompute'),
+};

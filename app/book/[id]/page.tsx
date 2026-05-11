@@ -6,6 +6,7 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { ManagerEditButton } from "@/components/manager-edit-button";
 import { BookGallery } from "@/components/book-gallery";
 import { BookReviews } from "@/components/book-reviews";
+import { RecommendationSection } from "@/components/recommendation-section";
 import { cn, formatBookFormat, formatAgeRating, formatLanguage, capitalize } from "@/lib/utils";
 
 
@@ -290,6 +291,17 @@ export default async function BookPage(props: { params: Promise<{ id: string }> 
         </div>
 
         <BookReviews bookId={book.id} />
+
+        <RecommendationSection
+          title="Похожие книги"
+          type="similar"
+          bookId={book.id}
+        />
+        <RecommendationSection
+          title="С этой книгой покупают"
+          type="frequently-bought-with"
+          bookId={book.id}
+        />
       </div>
     </div>
   );
