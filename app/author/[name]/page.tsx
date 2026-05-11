@@ -91,7 +91,7 @@ export default async function AuthorCatalogPage(props: {
   const genresParam = searchParams?.genres;
   const genres = Array.isArray(genresParam) ? genresParam : genresParam ? [genresParam] : [];
 
-  const sort = typeof searchParams?.sort === "string" ? searchParams.sort : "createdAt,desc";
+  const sort = typeof searchParams?.sort === "string" ? searchParams.sort : "relevance";
   const language = typeof searchParams?.language === "string" ? searchParams.language : "";
   const format = typeof searchParams?.format === "string" ? searchParams.format : "";
   const ageRating = typeof searchParams?.ageRating === "string" ? searchParams.ageRating : "";

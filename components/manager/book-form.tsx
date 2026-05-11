@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Upload, Plus, Search, Sparkles, ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, Upload, Plus, Search, Sparkles, ZoomIn, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,9 +35,11 @@ interface BookFormProps {
   };
   onSubmit: (data: BookFormData) => Promise<void>;
   submitLabel: string;
+  onDelete?: () => void;
+  deleteLabel?: string;
 }
 
-export function BookForm({ bookId, initialData, onSubmit, submitLabel }: BookFormProps) {
+export function BookForm({ bookId, initialData, onSubmit, submitLabel, onDelete, deleteLabel }: BookFormProps) {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [authors, setAuthors] = useState<Author[]>([]);
   const [publishers, setPublishers] = useState<Publisher[]>([]);
@@ -858,6 +860,12 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
         <Button type="button" variant="outline" onClick={() => window.history.back()}>
           Отмена
         </Button>
+        {onDelete && (
+          <Button type="button" variant="destructive" className="ml-auto" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 mr-2" />
+            {deleteLabel ?? "Удалить"}
+          </Button>
+        )}
       </div>
     </form>
   );

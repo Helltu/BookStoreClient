@@ -61,11 +61,11 @@ export const publishersApi = {
 
 // Books (multipart/form-data for create/update)
 export const booksApi = {
-  getAll: (page: number, size: number, query?: string, inStock?: boolean, sort?: string, genres?: string[], authors?: string[], publisher?: string, minPrice?: string, maxPrice?: string, language?: string, format?: string, ageRating?: string, minYear?: string, maxYear?: string, minRating?: string, deleted?: boolean) => {
+  getAll: (page: number, size: number, query?: string, inStock?: boolean, sort?: string, genres?: string[], authors?: string[], publisher?: string, minPrice?: string, maxPrice?: string, language?: string, format?: string, ageRating?: string, minYear?: string, maxYear?: string, minRating?: string, deleted?: boolean | null) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (query) params.set('query', query);
     if (inStock) params.set('inStock', 'true');
-    if (deleted) params.set('deleted', 'true');
+    if (deleted !== undefined && deleted !== null) params.set('deleted', String(deleted));
     if (sort) params.append('sort', sort);
     genres?.forEach(g => params.append('genres', g));
     authors?.forEach(a => params.append('authors', a));

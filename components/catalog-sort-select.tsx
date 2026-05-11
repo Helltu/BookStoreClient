@@ -10,13 +10,12 @@ import {
 } from "@/components/ui/select";
 
 const SORT_OPTIONS = [
-  { value: "createdAt,desc", label: "Новинки" },
-  { value: "averageRating,desc", label: "Рейтинг: по убыванию" },
-  { value: "averageRating,asc", label: "Рейтинг: по возрастанию" },
+  { value: "relevance", label: "По релевантности" },
   { value: "price,asc", label: "Цена: по возрастанию" },
   { value: "price,desc", label: "Цена: по убыванию" },
+  { value: "averageRating,desc", label: "Рейтинг: по убыванию" },
+  { value: "createdAt,desc", label: "Новинки" },
   { value: "title,asc", label: "Название: А–Я" },
-  { value: "title,desc", label: "Название: Я–А" },
 ];
 
 interface CatalogSortSelectProps {
@@ -36,7 +35,7 @@ export function CatalogSortSelect({ currentSort, currentParams, basePath = "/" }
   }
 
   return (
-    <Select value={currentSort || "createdAt,desc"} onValueChange={handleChange}>
+    <Select value={currentSort || "relevance"} onValueChange={handleChange}>
       <SelectTrigger className="h-9 w-52 text-sm">
         <SelectValue placeholder="Сортировка" />
       </SelectTrigger>

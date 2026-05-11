@@ -79,7 +79,7 @@ export default async function Home(props: {
   const authorsParam = searchParams?.authors;
   const authors = Array.isArray(authorsParam) ? authorsParam : authorsParam ? [authorsParam] : [];
 
-  const sort = typeof searchParams?.sort === "string" ? searchParams.sort : "createdAt,desc";
+  const sort = typeof searchParams?.sort === "string" ? searchParams.sort : "relevance";
   const language = typeof searchParams?.language === "string" ? searchParams.language : "";
   const format = typeof searchParams?.format === "string" ? searchParams.format : "";
   const ageRating = typeof searchParams?.ageRating === "string" ? searchParams.ageRating : "";

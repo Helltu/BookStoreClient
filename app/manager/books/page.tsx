@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Plus, Pencil, Trash2, Search, Package, ChevronUp, ChevronDown, ChevronsUpDown, X, Download, Star, RotateCcw } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, X, Download, Star, RotateCcw, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { booksApi } from "@/lib/api/manager";
+import { revalidateCatalogTag } from "@/app/actions/revalidate";
 import { ManagerPagination } from "@/components/manager/manager-pagination";
 import { ManagerBookFilterSidebar, type ManagerBookFilters } from "@/components/manager/manager-book-filter-sidebar";
 import { cn } from "@/lib/utils";
@@ -19,14 +20,13 @@ import type { ManagedBook } from "@/lib/types/manager";
 
 const PAGE_SIZE = 15;
 
+const DEFAULT_SORT = "createdAt,desc";
 type SortField = "title" | "price" | "stockQuantity" | "averageRating" | "createdAt";
-type SortDir = "asc" | "desc";
 
-function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: SortField; sortDir: SortDir }) {
-  if (sortField !== field) return <ChevronsUpDown className="h-3.5 w-3.5 ml-1 opacity-40" />;
-  return sortDir === "asc"
-    ? <ChevronUp className="h-3.5 w-3.5 ml-1" />
-    : <ChevronDown className="h-3.5 w-3.5 ml-1" />;
+function SortIcon({ field, sort }: { field: SortField; sort: string }) {
+  const [f, dir] = sort.split(",");
+  if (f !== field) return <ChevronsUpDown className="h-3.5 w-3.5 ml-1 opacity-40" />;
+  return dir === "asc" ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />;
 }
 
 export default function BooksPage() {
@@ -66,8 +66,8 @@ export default function BooksPage() {
   const [totalElements, setTotalElements] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [sortField, setSortField] = useState<SortField>("title");
-  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [sort, setSort] = useState(DEFAULT_SORT);
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "deleted">("all");
   const [bookFilters, setBookFilters] = useState<ManagerBookFilters>(() => {
     const genre = searchParams.get("genre");
     return { genres: genre ? [genre] : [], authors: [], publisher: "", minPrice: "", maxPrice: "", language: "", format: "", ageRating: "", minYear: "", maxYear: "", minRating: "", inStock: false, showDeleted: false };
@@ -94,7 +94,7 @@ export default function BooksPage() {
         page, PAGE_SIZE,
         search || undefined,
         bookFilters.inStock || undefined,
-        `${sortField},${sortDir}`,
+        sort,
         bookFilters.genres.length ? bookFilters.genres : undefined,
         bookFilters.authors.length ? bookFilters.authors : undefined,
         bookFilters.publisher || undefined,
@@ -106,7 +106,7 @@ export default function BooksPage() {
         bookFilters.minYear || undefined,
         bookFilters.maxYear || undefined,
         bookFilters.minRating || undefined,
-        bookFilters.showDeleted || undefined,
+        statusFilter === "all" ? null : statusFilter === "deleted",
       );
       setBooks(res.data.content);
       setTotalPages(res.data.totalPages);
@@ -116,7 +116,7 @@ export default function BooksPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, sortField, sortDir, bookFilters]);
+  }, [page, search, sort, bookFilters, statusFilter]);
 
   useEffect(() => { loadBooks(); }, [loadBooks]);
 
@@ -133,10 +133,14 @@ export default function BooksPage() {
     return () => { window.removeEventListener("keydown", handler); document.body.style.overflow = ""; };
   }, [lightboxUrl]);
 
+
   const toggleSort = (field: SortField) => {
     setPage(0);
-    if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
-    else { setSortField(field); setSortDir("asc"); }
+    setSort((prev) => {
+      const [f, dir] = prev.split(",");
+      if (f === field) return `${field},${dir === "asc" ? "desc" : "asc"}`;
+      return `${field},asc`;
+    });
   };
 
   const handleDelete = async () => {
@@ -146,7 +150,9 @@ export default function BooksPage() {
       await booksApi.delete(deleteTarget.id);
       toast.success("Книга удалена");
       setDeleteTarget(null);
-      loadBooks();
+      await revalidateCatalogTag("books");
+      if (books.length === 1 && page > 0) setPage((p) => p - 1);
+      else loadBooks();
     } catch {
       // handled by interceptor
     } finally {
@@ -198,7 +204,9 @@ export default function BooksPage() {
       await booksApi.forceDelete(forceDeleteTarget.id);
       toast.success("Книга удалена безвозвратно");
       setForceDeleteTarget(null);
-      loadBooks();
+      await revalidateCatalogTag("books");
+      if (books.length === 1 && page > 0) setPage((p) => p - 1);
+      else loadBooks();
     } catch {
       // handled by interceptor
     } finally {
@@ -206,7 +214,6 @@ export default function BooksPage() {
     }
   };
 
-  const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   return (
     <div className="flex flex-col h-full">
@@ -239,15 +246,31 @@ export default function BooksPage() {
         <ManagerBookFilterSidebar
           filters={bookFilters}
           onChange={(f) => { setPage(0); setBookFilters(f); }}
-          showDeletedFilter
         />
+        <div className="flex rounded-md border border-input overflow-hidden text-sm">
+          {(["all", "active", "deleted"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => { setStatusFilter(v); setPage(0); }}
+              className={`px-3 h-8 transition-colors ${statusFilter === v ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}
+            >
+              {v === "all" ? "Все" : v === "active" ? "Активные" : "Удалённые"}
+            </button>
+          ))}
+        </div>
+        {sort !== DEFAULT_SORT && (
+          <Button variant="destructive" size="sm" className="h-9 ml-auto" onClick={() => { setSort(DEFAULT_SORT); setPage(0); }}>
+            <X className="h-3.5 w-3.5 mr-1" />
+            Сбросить сортировку
+          </Button>
+        )}
       </div>
 
       {(loading ? (
         <div className="text-center py-12 text-muted-foreground">Загрузка...</div>
       ) : books.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          {bookFilters.showDeleted ? "Удалённых книг нет" : search || bookFilters.inStock ? "Ничего не найдено" : "Книги не добавлены"}
+          {statusFilter === "deleted" ? "Удалённых книг нет" : search || bookFilters.inStock ? "Ничего не найдено" : "Книги не добавлены"}
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
@@ -256,19 +279,19 @@ export default function BooksPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-20">Обложка</TableHead>
-                  <TableHead className={thClass} onClick={() => toggleSort("title")}>
-                    <span className="flex items-center">Название <SortIcon field="title" sortField={sortField} sortDir={sortDir} /></span>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50" onClick={() => toggleSort("title")}>
+                    <span className="flex items-center">Название <SortIcon field="title" sort={sort} /></span>
                   </TableHead>
                   <TableHead className="hidden lg:table-cell">Авторы</TableHead>
                   <TableHead className="hidden md:table-cell">Жанры</TableHead>
-                  <TableHead className={`${thClass} text-right`} onClick={() => toggleSort("price")}>
-                    <span className="flex items-center justify-end">Цена <SortIcon field="price" sortField={sortField} sortDir={sortDir} /></span>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 text-right" onClick={() => toggleSort("price")}>
+                    <span className="flex items-center justify-end">Цена <SortIcon field="price" sort={sort} /></span>
                   </TableHead>
-                  <TableHead className={`${thClass} text-right`} onClick={() => toggleSort("stockQuantity")}>
-                    <span className="flex items-center justify-end">Склад <SortIcon field="stockQuantity" sortField={sortField} sortDir={sortDir} /></span>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 text-right" onClick={() => toggleSort("stockQuantity")}>
+                    <span className="flex items-center justify-end">Склад <SortIcon field="stockQuantity" sort={sort} /></span>
                   </TableHead>
-                  <TableHead className={`${thClass} hidden lg:table-cell`} onClick={() => toggleSort("averageRating")}>
-                    <span className="flex items-center">Отзывы <SortIcon field="averageRating" sortField={sortField} sortDir={sortDir} /></span>
+                  <TableHead className="cursor-pointer select-none hover:bg-muted/50 hidden lg:table-cell" onClick={() => toggleSort("averageRating")}>
+                    <span className="flex items-center">Отзывы <SortIcon field="averageRating" sort={sort} /></span>
                   </TableHead>
                   <TableHead className="hidden xl:table-cell w-72 text-muted-foreground font-normal">ID</TableHead>
                   <TableHead className="w-32 text-right">Действия</TableHead>
