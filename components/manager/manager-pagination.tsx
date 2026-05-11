@@ -9,10 +9,24 @@ interface ManagerPaginationProps {
   totalPages: number;
   onPageChange: (page: number) => void;
   tableRef?: RefObject<HTMLDivElement | null>;
+  totalItems?: number;
+  pageSize?: number;
 }
 
-export function ManagerPagination({ page, totalPages, onPageChange, tableRef }: ManagerPaginationProps) {
-  if (totalPages <= 1) return null;
+export function ManagerPagination({ page, totalPages, onPageChange, tableRef, totalItems, pageSize }: ManagerPaginationProps) {
+  const showCounter = totalItems !== undefined && pageSize !== undefined;
+  const shown = showCounter ? Math.min((page + 1) * pageSize, totalItems) : null;
+
+  if (totalPages <= 1) {
+    if (!showCounter || !totalItems) return null;
+    return (
+      <div className="flex items-center justify-end mt-4">
+        <span className="text-xs text-muted-foreground">{totalItems} / {totalItems}</span>
+      </div>
+    );
+  }
+
+
 
   const getPages = (): (number | "...")[] => {
     if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i);
@@ -32,7 +46,7 @@ export function ManagerPagination({ page, totalPages, onPageChange, tableRef }: 
   };
 
   return (
-    <div className="flex items-center justify-center gap-1 mt-4">
+    <div className="relative flex items-center justify-center gap-1 mt-4">
       <Button variant="outline" size="icon" disabled={page === 0} onClick={() => handlePageChange(page - 1)}>
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -55,6 +69,10 @@ export function ManagerPagination({ page, totalPages, onPageChange, tableRef }: 
       <Button variant="outline" size="icon" disabled={page >= totalPages - 1} onClick={() => handlePageChange(page + 1)}>
         <ChevronRight className="h-4 w-4" />
       </Button>
+
+      {showCounter && shown !== null && (
+        <span className="absolute right-0 text-xs text-muted-foreground">{shown} / {totalItems}</span>
+      )}
     </div>
   );
 }

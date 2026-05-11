@@ -11,6 +11,8 @@ export const genresApi = {
   create: (data: { name: string }) => apiClient.post<Genre>('/catalog/genres', data),
   update: (id: string, data: { name: string }) => apiClient.put<Genre>(`/catalog/genres/${id}`, data),
   delete: (id: string) => apiClient.delete(`/catalog/genres/${id}`),
+  forceDelete: (id: string) => apiClient.delete(`/catalog/genres/${id}/force`),
+  restore: (id: string) => apiClient.post<Genre>(`/catalog/genres/${id}/restore`),
 };
 
 // Authors (multipart/form-data)
@@ -31,6 +33,8 @@ export const authorsApi = {
     return apiClient.put<Author>(`/catalog/authors/${id}`, fd, multipartConfig());
   },
   delete: (id: string) => apiClient.delete(`/catalog/authors/${id}`),
+  forceDelete: (id: string) => apiClient.delete(`/catalog/authors/${id}/force`),
+  restore: (id: string) => apiClient.post<Author>(`/catalog/authors/${id}/restore`),
 };
 
 // Publishers (multipart/form-data)
@@ -51,14 +55,17 @@ export const publishersApi = {
     return apiClient.put<Publisher>(`/catalog/publishers/${id}`, fd, multipartConfig());
   },
   delete: (id: string) => apiClient.delete(`/catalog/publishers/${id}`),
+  forceDelete: (id: string) => apiClient.delete(`/catalog/publishers/${id}/force`),
+  restore: (id: string) => apiClient.post<Publisher>(`/catalog/publishers/${id}/restore`),
 };
 
 // Books (multipart/form-data for create/update)
 export const booksApi = {
-  getAll: (page: number, size: number, query?: string, inStock?: boolean, sort?: string, genres?: string[], authors?: string[], publisher?: string, minPrice?: string, maxPrice?: string, language?: string, format?: string, ageRating?: string, minYear?: string, maxYear?: string, minRating?: string) => {
+  getAll: (page: number, size: number, query?: string, inStock?: boolean, sort?: string, genres?: string[], authors?: string[], publisher?: string, minPrice?: string, maxPrice?: string, language?: string, format?: string, ageRating?: string, minYear?: string, maxYear?: string, minRating?: string, deleted?: boolean) => {
     const params = new URLSearchParams({ page: String(page), size: String(size) });
     if (query) params.set('query', query);
     if (inStock) params.set('inStock', 'true');
+    if (deleted) params.set('deleted', 'true');
     if (sort) params.append('sort', sort);
     genres?.forEach(g => params.append('genres', g));
     authors?.forEach(a => params.append('authors', a));
@@ -127,6 +134,8 @@ export const booksApi = {
   adjustStock: (id: string, stockQuantity: number) =>
     apiClient.patch<void>(`/catalog/books/${id}/stock`, { quantity: stockQuantity }),
   delete: (id: string) => apiClient.delete(`/catalog/books/${id}`),
+  forceDelete: (id: string) => apiClient.delete(`/catalog/books/${id}/force`),
+  restore: (id: string) => apiClient.post<void>(`/catalog/books/${id}/restore`),
   generateKeywords: (id: string) => apiClient.get<string[]>(`/catalog/books/${id}/keywords/generate`),
   generateDescription: (id: string) => apiClient.get<string>(`/catalog/books/${id}/description/generate`),
   suggestKeywords: (body: { title: string; description?: string | null; existingKeywords: string[] }) =>

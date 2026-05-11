@@ -330,7 +330,6 @@ export default function OrdersPage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold">Заказы</h1>
-          {!loading && <p className="text-sm text-muted-foreground mt-0.5">Всего: {totalElements}</p>}
         </div>
       </div>
 
@@ -429,7 +428,7 @@ export default function OrdersPage() {
               </TableBody>
             </Table>
           </div>
-          <ManagerPagination page={page} totalPages={totalPages} onPageChange={(p) => { setPage(p); load(p); }} tableRef={tableRef} />
+          <ManagerPagination page={page} totalPages={totalPages} onPageChange={(p) => { setPage(p); load(p); }} tableRef={tableRef} totalItems={totalElements} pageSize={20} />
         </div>
       )}
 

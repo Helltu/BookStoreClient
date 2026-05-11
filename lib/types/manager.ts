@@ -1,6 +1,7 @@
 export interface Genre {
   id: string;
   name: string;
+  deletedAt?: string | null;
 }
 
 export interface Author {
@@ -8,6 +9,7 @@ export interface Author {
   name: string;
   biography?: string;
   photoUrl?: string;
+  deletedAt?: string | null;
 }
 
 export interface Publisher {
@@ -15,6 +17,7 @@ export interface Publisher {
   name: string;
   description?: string;
   logoUrl?: string;
+  deletedAt?: string | null;
 }
 
 export type BookFormat = "HARDCOVER" | "PAPERBACK" | "POCKET" | "LARGE_FORMAT" | "COLLECTOR";
@@ -26,6 +29,7 @@ export interface ManagedBook {
   price: number;
   isbn?: string;
   stockQuantity?: number;
+  deletedAt?: string | null;
   language?: string;
   originalLanguage?: string;
   publicationYear?: number;

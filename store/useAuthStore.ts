@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import apiClient from '@/lib/api/axios';
+import { setTokenCookie, clearTokenCookie } from '@/app/actions/auth';
 
 export interface UserProfile {
   id: string;
@@ -26,13 +27,14 @@ export const useAuthStore = create<AuthState>((set) => ({
   
   login: (token: string) => {
     localStorage.setItem('token', token);
+    setTokenCookie(token);
     set({ isAuthenticated: true });
-    // Сразу запрашиваем профиль после установки токена
     useAuthStore.getState().fetchProfile();
   },
-  
+
   logout: () => {
     localStorage.removeItem('token');
+    clearTokenCookie();
     set({ user: null, isAuthenticated: false, isLoading: false });
   },
   

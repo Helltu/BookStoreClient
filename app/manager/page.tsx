@@ -141,9 +141,9 @@ export default function ManagerDashboard() {
         ]);
         setStats({
           books: booksRes.data.totalElements,
-          authors: authorsRes.data.length,
-          genres: genresRes.data.length,
-          publishers: publishersRes.data.length,
+          authors: authorsRes.data.filter(a => !a.deletedAt).length,
+          genres: genresRes.data.filter(g => !g.deletedAt).length,
+          publishers: publishersRes.data.filter(p => !p.deletedAt).length,
           orders: ordersRes.data.totalElements,
         });
       } catch { /* interceptor */ } finally { setCatalogLoading(false); }
@@ -189,7 +189,7 @@ export default function ManagerDashboard() {
       const [booksRes, authorsRes, genresRes, publishersRes] = await Promise.all([
         booksApi.getAll(0, 1), authorsApi.getAll(), genresApi.getAll(), publishersApi.getAll(),
       ]);
-      setStats(s => ({ ...s, books: booksRes.data.totalElements, authors: authorsRes.data.length, genres: genresRes.data.length, publishers: publishersRes.data.length }));
+      setStats(s => ({ ...s, books: booksRes.data.totalElements, authors: authorsRes.data.filter(a => !a.deletedAt).length, genres: genresRes.data.filter(g => !g.deletedAt).length, publishers: publishersRes.data.filter(p => !p.deletedAt).length }));
     } catch { setIoMessage({ text: `Ошибка импорта ${entity}`, ok: false }); }
     finally { setIoLoading(null); }
   }

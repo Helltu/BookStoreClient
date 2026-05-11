@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Search, Upload, ChevronUp, ChevronDown, ChevronsUpDown, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Upload, ChevronUp, ChevronDown, ChevronsUpDown, X, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import Link from "next/link";
 import { publishersApi } from "@/lib/api/manager";
 import { ManagerPagination } from "@/components/manager/manager-pagination";
 import { revalidateCatalogTag } from "@/app/actions/revalidate";
+import { cn } from "@/lib/utils";
 import type { Publisher } from "@/lib/types/manager";
 
 type SortField = "name";
@@ -31,10 +32,10 @@ export default function PublishersPage() {
   const [publishers, setPublishers] = useState<Publisher[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "deleted">("all");
   const [page, setPage] = useState(0);
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPublisher, setEditingPublisher] = useState<Publisher | null>(null);
   const [formName, setFormName] = useState("");
@@ -44,6 +45,7 @@ export default function PublishersPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [deleteTarget, setDeleteTarget] = useState<Publisher | null>(null);
+  const [forceDeleteTarget, setForceDeleteTarget] = useState<Publisher | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -118,7 +120,7 @@ export default function PublishersPage() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleSoftDelete = async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
@@ -134,13 +136,40 @@ export default function PublishersPage() {
     }
   };
 
+  const handleForceDelete = async () => {
+    if (!forceDeleteTarget) return;
+    setDeleting(true);
+    try {
+      await publishersApi.forceDelete(forceDeleteTarget.id);
+      toast.success("Издательство удалено безвозвратно");
+      setForceDeleteTarget(null);
+      await revalidateCatalogTag("publishers");
+      loadPublishers();
+    } catch {
+      // handled by interceptor
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleRestore = async (publisher: Publisher) => {
+    try {
+      await publishersApi.restore(publisher.id);
+      toast.success("Издательство восстановлено");
+      await revalidateCatalogTag("publishers");
+      loadPublishers();
+    } catch {
+      // handled by interceptor
+    }
+  };
+
   const PAGE_SIZE = 20;
   const q = search.toLowerCase();
-  const filtered = publishers.filter((p) =>
-    p.id.toLowerCase().includes(q) ||
-    p.name.toLowerCase().includes(q) ||
-    (p.description ?? "").toLowerCase().includes(q)
-  );
+  const filtered = publishers.filter((p) => {
+    if (statusFilter === "active" && p.deletedAt) return false;
+    if (statusFilter === "deleted" && !p.deletedAt) return false;
+    return p.id.toLowerCase().includes(q) || p.name.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q);
+  });
   const sorted = [...filtered].sort((a, b) => {
     const cmp = a[sortField].localeCompare(b[sortField]);
     return sortDir === "asc" ? cmp : -cmp;
@@ -160,14 +189,27 @@ export default function PublishersPage() {
         </Button>
       </div>
 
-      <div className="relative mb-4 max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Поиск по ID, названию, описанию..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-          className="pl-9"
-        />
+      <div className="flex gap-2 mb-4">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Поиск по ID, названию, описанию..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+            className="pl-9"
+          />
+        </div>
+        <div className="flex rounded-md border border-input overflow-hidden text-sm">
+          {(["all", "active", "deleted"] as const).map((v) => (
+            <button
+              key={v}
+              onClick={() => { setStatusFilter(v); setPage(0); }}
+              className={`px-3 h-8 transition-colors ${statusFilter === v ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}
+            >
+              {v === "all" ? "Все" : v === "active" ? "Активные" : "Удалённые"}
+            </button>
+          ))}
+        </div>
       </div>
 
       {loading ? (
@@ -188,48 +230,72 @@ export default function PublishersPage() {
                   </TableHead>
                   <TableHead className="hidden md:table-cell">Описание</TableHead>
                   <TableHead className="hidden xl:table-cell w-72 text-muted-foreground font-normal">ID</TableHead>
-                  <TableHead className="w-28 text-right">Действия</TableHead>
+                  <TableHead className="w-36 text-right">Действия</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginated.map((publisher) => (
-                  <TableRow key={publisher.id} className="cursor-pointer hover:bg-muted/40" onClick={() => router.push(`/publisher/${encodeURIComponent(publisher.name)}`)}>
-
-                    <TableCell>
-                      {publisher.logoUrl ? (
-                        <img
-                          src={publisher.logoUrl}
-                          alt={publisher.name}
-                          className="h-10 w-10 rounded object-cover cursor-zoom-in hover:opacity-80 transition-opacity"
-                          onClick={() => setLightboxUrl(publisher.logoUrl!)}
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
-                          —
-                        </div>
+                {paginated.map((publisher) => {
+                  const isDeleted = !!publisher.deletedAt;
+                  return (
+                    <TableRow
+                      key={publisher.id}
+                      className={cn(
+                        "cursor-pointer",
+                        isDeleted ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30" : "hover:bg-muted/40"
                       )}
-                    </TableCell>
-                    <TableCell className="font-medium"><Link href={`/publisher/${encodeURIComponent(publisher.name)}`} className="hover:underline">{publisher.name}</Link></TableCell>
-                    <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-xs truncate">
-                      {publisher.description || "—"}
-                    </TableCell>
-                    <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{publisher.id}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEdit(publisher); }}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget(publisher); }}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      onClick={() => router.push(`/publisher/${encodeURIComponent(publisher.name)}`)}
+                    >
+                      <TableCell>
+                        {publisher.logoUrl ? (
+                          <img
+                            src={publisher.logoUrl}
+                            alt={publisher.name}
+                            className="h-10 w-10 rounded object-cover cursor-zoom-in hover:opacity-80 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); setLightboxUrl(publisher.logoUrl!); }}
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">
+                            —
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <Link href={`/publisher/${encodeURIComponent(publisher.name)}`} className="hover:underline">{publisher.name}</Link>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-xs truncate">
+                        {publisher.description || "—"}
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{publisher.id}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          {isDeleted ? (
+                            <>
+                              <Button variant="ghost" size="icon" title="Восстановить" onClick={(e) => { e.stopPropagation(); handleRestore(publisher); }}>
+                                <RotateCcw className="h-4 w-4 text-green-600" />
+                              </Button>
+                              <Button variant="ghost" size="icon" title="Удалить безвозвратно" onClick={(e) => { e.stopPropagation(); setForceDeleteTarget(publisher); }}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openEdit(publisher); }}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget(publisher); }}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
-          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} tableRef={tableRef} />
+          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} tableRef={tableRef} totalItems={sorted.length} pageSize={PAGE_SIZE} />
         </div>
       )}
 
@@ -307,19 +373,37 @@ export default function PublishersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete confirmation */}
+      {/* Soft delete confirmation */}
       <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Удалить издательство?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Вы уверены, что хотите удалить издательство &laquo;{deleteTarget?.name}&raquo;? Это действие нельзя отменить.
+            Издательство &laquo;{deleteTarget?.name}&raquo; будет удалено. Если к нему привязаны книги — оно будет скрыто и его можно восстановить. Иначе — удалено безвозвратно.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>Отмена</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+            <Button variant="destructive" onClick={handleSoftDelete} disabled={deleting}>
               {deleting ? "Удаление..." : "Удалить"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Force delete confirmation */}
+      <Dialog open={!!forceDeleteTarget} onOpenChange={(open) => !open && setForceDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Удалить безвозвратно?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Издательство &laquo;{forceDeleteTarget?.name}&raquo; будет удалено из базы данных. Это действие нельзя отменить.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForceDeleteTarget(null)}>Отмена</Button>
+            <Button variant="destructive" onClick={handleForceDelete} disabled={deleting}>
+              {deleting ? "Удаление..." : "Удалить безвозвратно"}
             </Button>
           </DialogFooter>
         </DialogContent>

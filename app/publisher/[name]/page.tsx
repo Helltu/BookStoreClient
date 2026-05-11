@@ -1,4 +1,5 @@
 import { BookCard, type Book } from "@/components/book-card";
+import { serverFetch } from "@/lib/api/server-fetch";
 import { PaginationControls } from "@/components/pagination-controls";
 import { CatalogFilterSidebar } from "@/components/catalog-filter-sidebar";
 import { CatalogSortSelect } from "@/components/catalog-sort-select";
@@ -62,7 +63,7 @@ async function getBooks(filters: ActiveFilters & { page: number; sort: string })
 }
 
 async function getPublisher(name: string): Promise<{ id: string; name: string; description?: string; logoUrl?: string } | null> {
-  const res = await fetch(`${process.env.BACKEND_URL ?? "http://localhost:8080"}/api/catalog/publishers`, { next: { revalidate: 300, tags: ["publishers"] } });
+  const res = await serverFetch(`${process.env.BACKEND_URL ?? "http://localhost:8080"}/api/catalog/publishers`, { next: { revalidate: 300, tags: ["publishers"] } } as RequestInit);
   if (!res.ok) return null;
   const publishers: { id: string; name: string; description?: string; logoUrl?: string }[] = await res.json();
   return publishers.find(p => p.name === name) ?? null;

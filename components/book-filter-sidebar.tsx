@@ -32,6 +32,8 @@ export interface BookFilterSidebarFilters {
   inStock: boolean;
   // catalog-only
   query?: string;
+  // manager-only
+  showDeleted?: boolean;
 }
 
 interface FilterData {
@@ -59,6 +61,7 @@ type ManagerProps = {
   mode: "manager";
   filters: BookFilterSidebarFilters;
   onChange: (filters: BookFilterSidebarFilters) => void;
+  showDeletedFilter?: boolean;
 };
 
 type BookFilterSidebarProps = CatalogProps | ManagerProps;
@@ -68,7 +71,7 @@ const EMPTY_FILTERS: BookFilterSidebarFilters = {
   minPrice: "", maxPrice: "",
   language: "", format: "", ageRating: "",
   minYear: "", maxYear: "", minRating: "",
-  inStock: false,
+  inStock: false, showDeleted: false,
 };
 
 export function BookFilterSidebar(props: BookFilterSidebarProps) {
@@ -192,6 +195,8 @@ export function BookFilterSidebar(props: BookFilterSidebarProps) {
   const freeAuthors = filters.authors.filter(a => a !== lockedAuthor);
   const freePublisher = lockedPublisher ? "" : filters.publisher;
 
+  const showDeletedFilter = props.mode === "manager" && props.showDeletedFilter;
+
   const activeCount =
     freeGenres.length +
     freeAuthors.length +
@@ -202,7 +207,8 @@ export function BookFilterSidebar(props: BookFilterSidebarProps) {
     (filters.format ? 1 : 0) +
     (filters.ageRating ? 1 : 0) +
     (filters.minYear || filters.maxYear ? 1 : 0) +
-    (filters.minRating ? 1 : 0);
+    (filters.minRating ? 1 : 0) +
+    (filters.showDeleted ? 1 : 0);
 
   return (
     <Sheet>
@@ -233,6 +239,22 @@ export function BookFilterSidebar(props: BookFilterSidebarProps) {
             </div>
           ) : (
             <div className="flex flex-col gap-5 px-5 py-5 pb-24">
+
+              {/* Show Deleted — manager only */}
+              {showDeletedFilter && (
+                <>
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={!!filters.showDeleted}
+                      onChange={(e) => update({ showDeleted: e.target.checked })}
+                      className="h-4 w-4 rounded accent-primary shrink-0"
+                    />
+                    <span className="text-sm font-medium">Только удалённые</span>
+                  </label>
+                  <Separator />
+                </>
+              )}
 
               {/* In Stock */}
               <label className="flex items-center gap-2.5 cursor-pointer select-none">

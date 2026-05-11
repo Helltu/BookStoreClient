@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Plus, Pencil, Trash2, Search, Package, ChevronUp, ChevronDown, ChevronsUpDown, X, Download, Star } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Package, ChevronUp, ChevronDown, ChevronsUpDown, X, Download, Star, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -63,13 +63,14 @@ export default function BooksPage() {
   const importValid = importIsbn.trim().length > 0 && parseFloat(importPrice) > 0 && parseInt(importStock) >= 0;
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<SortField>("title");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [bookFilters, setBookFilters] = useState<ManagerBookFilters>(() => {
     const genre = searchParams.get("genre");
-    return { genres: genre ? [genre] : [], authors: [], publisher: "", minPrice: "", maxPrice: "", language: "", format: "", ageRating: "", minYear: "", maxYear: "", minRating: "", inStock: false };
+    return { genres: genre ? [genre] : [], authors: [], publisher: "", minPrice: "", maxPrice: "", language: "", format: "", ageRating: "", minYear: "", maxYear: "", minRating: "", inStock: false, showDeleted: false };
   });
 
   const [deleteTarget, setDeleteTarget] = useState<ManagedBook | null>(null);
@@ -81,6 +82,10 @@ export default function BooksPage() {
 
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+
+  const [restoreTarget, setRestoreTarget] = useState<ManagedBook | null>(null);
+  const [forceDeleteTarget, setForceDeleteTarget] = useState<ManagedBook | null>(null);
+  const [forceDeleting, setForceDeleting] = useState(false);
 
   const loadBooks = useCallback(async () => {
     setLoading(true);
@@ -101,9 +106,11 @@ export default function BooksPage() {
         bookFilters.minYear || undefined,
         bookFilters.maxYear || undefined,
         bookFilters.minRating || undefined,
+        bookFilters.showDeleted || undefined,
       );
       setBooks(res.data.content);
       setTotalPages(res.data.totalPages);
+      setTotalElements(res.data.totalElements);
     } catch {
       // handled by interceptor
     } finally {
@@ -172,6 +179,33 @@ export default function BooksPage() {
     }
   };
 
+  const handleRestore = async () => {
+    if (!restoreTarget) return;
+    try {
+      await booksApi.restore(restoreTarget.id);
+      toast.success("Книга восстановлена");
+      setRestoreTarget(null);
+      loadBooks();
+    } catch {
+      // handled by interceptor
+    }
+  };
+
+  const handleForceDelete = async () => {
+    if (!forceDeleteTarget) return;
+    setForceDeleting(true);
+    try {
+      await booksApi.forceDelete(forceDeleteTarget.id);
+      toast.success("Книга удалена безвозвратно");
+      setForceDeleteTarget(null);
+      loadBooks();
+    } catch {
+      // handled by interceptor
+    } finally {
+      setForceDeleting(false);
+    }
+  };
+
   const thClass = "cursor-pointer select-none hover:bg-muted/50 transition-colors";
 
   return (
@@ -202,18 +236,18 @@ export default function BooksPage() {
             className="pl-9 w-72"
           />
         </div>
-
         <ManagerBookFilterSidebar
           filters={bookFilters}
           onChange={(f) => { setPage(0); setBookFilters(f); }}
+          showDeletedFilter
         />
       </div>
 
-      {loading ? (
+      {(loading ? (
         <div className="text-center py-12 text-muted-foreground">Загрузка...</div>
       ) : books.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          {search || bookFilters.inStock ? "Ничего не найдено" : "Книги не добавлены"}
+          {bookFilters.showDeleted ? "Удалённых книг нет" : search || bookFilters.inStock ? "Ничего не найдено" : "Книги не добавлены"}
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
@@ -241,16 +275,24 @@ export default function BooksPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {books.map((book) => (
-                  <TableRow key={book.id} className="cursor-pointer hover:bg-muted/40" onClick={() => router.push(`/book/${book.id}`)}>
-
+                {books.map((book) => {
+                  const isDeleted = !!book.deletedAt;
+                  return (
+                  <TableRow
+                    key={book.id}
+                    className={cn(
+                      "cursor-pointer",
+                      isDeleted ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30" : "hover:bg-muted/40"
+                    )}
+                    onClick={() => router.push(`/book/${book.id}`)}
+                  >
                     <TableCell>
                       {book.coverUrl ? (
                         <img
                           src={book.coverUrl}
                           alt={book.title}
                           className="h-14 w-10 object-cover rounded cursor-zoom-in hover:opacity-80 transition-opacity"
-                          onClick={() => setLightboxUrl(book.coverUrl!)}
+                          onClick={(e) => { e.stopPropagation(); setLightboxUrl(book.coverUrl!); }}
                         />
                       ) : (
                         <div className="h-14 w-10 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
@@ -260,30 +302,24 @@ export default function BooksPage() {
                     </TableCell>
                     <TableCell>
                       <Link href={`/book/${book.id}`} className="font-medium hover:underline">{book.title}</Link>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        ISBN: {book.isbn || "—"}
-                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">ISBN: {book.isbn || "—"}</div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <span className="text-sm text-muted-foreground">
                         {book.authors?.map((a, i) => (
-                          <span key={i}>{i > 0 && ", "}<Link href={`/author/${encodeURIComponent(a)}`} className="hover:underline">{a}</Link></span>
+                          <span key={i}>{i > 0 && ", "}
+                            <Link href={`/author/${encodeURIComponent(a)}`} className="hover:underline">{a}</Link>
+                          </span>
                         )) || "—"}
                       </span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <div className="flex flex-wrap gap-1">
                         {(book.genres ?? []).slice(0, 3).map((g, i) => (
-                          <Link key={i} href={`/genre/${encodeURIComponent(g)}`}>
-                          <Badge variant="secondary" className="text-xs hover:bg-secondary/80 cursor-pointer">
-                            {g}
-                          </Badge>
-                          </Link>
+                          <Badge key={i} variant="secondary" className="text-xs">{g}</Badge>
                         ))}
                         {(book.genres ?? []).length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{book.genres!.length - 3}
-                          </Badge>
+                          <Badge variant="outline" className="text-xs">+{book.genres!.length - 3}</Badge>
                         )}
                       </div>
                     </TableCell>
@@ -309,28 +345,76 @@ export default function BooksPage() {
                     <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{book.id}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" title="Изменить остаток" onClick={(e) => { e.stopPropagation(); openStockDialog(book); }}>
-                          <Package className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
-                          <Link href={`/manager/books/${book.id}/edit`}>
-                            <Pencil className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget(book); }}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        {isDeleted ? (
+                          <>
+                            <Button variant="ghost" size="icon" title="Восстановить" onClick={(e) => { e.stopPropagation(); setRestoreTarget(book); }}>
+                              <RotateCcw className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" title="Удалить безвозвратно" onClick={(e) => { e.stopPropagation(); setForceDeleteTarget(book); }}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Button variant="ghost" size="icon" title="Изменить остаток" onClick={(e) => { e.stopPropagation(); openStockDialog(book); }}>
+                              <Package className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
+                              <Link href={`/manager/books/${book.id}/edit`}>
+                                <Pencil className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); setDeleteTarget(book); }}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
 
-          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} tableRef={tableRef} />
+          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} tableRef={tableRef} totalItems={totalElements} pageSize={PAGE_SIZE} />
         </div>
-      )}
+      ))}
+
+      {/* Restore confirmation */}
+      <Dialog open={!!restoreTarget} onOpenChange={(open) => !open && setRestoreTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Восстановить книгу?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Книга &laquo;{restoreTarget?.title}&raquo; снова появится в каталоге.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRestoreTarget(null)}>Отмена</Button>
+            <Button onClick={handleRestore}>Восстановить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Force delete confirmation */}
+      <Dialog open={!!forceDeleteTarget} onOpenChange={(open) => !open && setForceDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Удалить безвозвратно?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Книга &laquo;{forceDeleteTarget?.title}&raquo; будет удалена из базы данных. Это действие нельзя отменить.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForceDeleteTarget(null)}>Отмена</Button>
+            <Button variant="destructive" onClick={handleForceDelete} disabled={forceDeleting}>
+              {forceDeleting ? "Удаление..." : "Удалить безвозвратно"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Import by ISBN */}
       <Dialog open={importOpen} onOpenChange={(open) => !open && setImportOpen(false)}>
@@ -440,7 +524,7 @@ export default function BooksPage() {
             <DialogTitle>Удалить книгу?</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Вы уверены, что хотите удалить книгу &laquo;{deleteTarget?.title}&raquo;? Это действие нельзя отменить.
+            Книга &laquo;{deleteTarget?.title}&raquo; будет удалена. Если по ней есть заказы — она будет скрыта из каталога и её можно восстановить. Иначе — удалена безвозвратно.
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)}>Отмена</Button>
