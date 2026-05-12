@@ -76,7 +76,7 @@ export function AiConsultant() {
           'fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-110 focus:outline-none',
           open && 'hidden'
         )}
-        aria-label="Открыть AI консультанта"
+        aria-label="Открыть ИИ консультанта"
       >
         <MessageCircle className="h-6 w-6" />
         {unread > 0 && (
@@ -99,7 +99,7 @@ export function AiConsultant() {
             <Bot className="h-5 w-5" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold">AI Консультант</p>
+            <p className="text-sm font-semibold">ИИ Консультант</p>
             <p className="text-xs text-muted-foreground">Помогу с выбором книг</p>
           </div>
           <button

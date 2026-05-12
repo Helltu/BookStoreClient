@@ -24,7 +24,7 @@ export default function AiConsultantWireframe() {
               <div className="w-4 h-4 bg-gray-500 rounded-sm"></div>
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">AI Консультант</p>
+              <p className="text-sm font-semibold text-gray-800">ИИ Консультант</p>
               <p className="text-xs text-gray-500">Помогу с выбором книг</p>
             </div>
             <button className="rounded-md p-1 hover:bg-gray-200 text-gray-500 font-bold px-2">
