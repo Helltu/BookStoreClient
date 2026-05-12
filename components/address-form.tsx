@@ -130,17 +130,36 @@ const emptyAddr = { street: "", city: "", state: "", postalCode: "", country: "�
 
 interface Props {
   onChange: (result: AddressResult | null) => void;
+  initialValue?: Partial<AddressResult>;
 }
 
-export function AddressFormLIQ({ onChange }: Props) {
-  const [cityQuery, setCityQuery] = useState("");
-  const [cityConfirmed, setCityConfirmed] = useState(false);
-  const [streetQuery, setStreetQuery] = useState("");
-  const [streetConfirmed, setStreetConfirmed] = useState(false);
-  const [houseQuery, setHouseQuery] = useState("");
-  const [houseConfirmed, setHouseConfirmed] = useState(false);
-  const [apartment, setApartment] = useState("");
-  const [addr, setAddr] = useState(emptyAddr);
+function parseStreetAndHouse(street: string): { streetName: string; house: string } {
+  const match = street.match(/^(.+?),\s*д\.\s*(.+)$/);
+  if (match) return { streetName: match[1].trim(), house: match[2].trim() };
+  return { streetName: street, house: "" };
+}
+
+export function AddressFormLIQ({ onChange, initialValue }: Props) {
+  const hasInitial = !!(initialValue?.city && initialValue?.street);
+  const { streetName: initStreetName, house: initHouse } = hasInitial
+    ? parseStreetAndHouse(initialValue!.street!)
+    : { streetName: "", house: "" };
+
+  const [cityQuery, setCityQuery] = useState(initialValue?.city ?? "");
+  const [cityConfirmed, setCityConfirmed] = useState(hasInitial);
+  const [streetQuery, setStreetQuery] = useState(initStreetName);
+  const [streetConfirmed, setStreetConfirmed] = useState(hasInitial);
+  const [houseQuery, setHouseQuery] = useState(initHouse);
+  const [houseConfirmed, setHouseConfirmed] = useState(hasInitial);
+  const [apartment, setApartment] = useState(initialValue?.apartment ?? "");
+  const [addr, setAddr] = useState({
+    ...emptyAddr,
+    city: initialValue?.city ?? "",
+    state: initialValue?.state ?? "",
+    postalCode: initialValue?.postalCode ?? "",
+    street: initialValue?.street ?? "",
+    country: initialValue?.country ?? "Беларусь",
+  });
   const [touched, setTouched] = useState({ city: false, street: false, house: false, apartment: false });
 
   const { suggestions: rawCity, clear: clearCity } = useLIQ(cityConfirmed ? "" : cityQuery, {});
@@ -190,6 +209,14 @@ export function AddressFormLIQ({ onChange }: Props) {
       onChange(null);
     }
   }, [houseConfirmed, addr, apartment]);
+
+  // Emit initial value immediately if pre-filled
+  useEffect(() => {
+    if (hasInitial && initialValue?.apartment) {
+      onChange({ ...addr, apartment: initialValue.apartment });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function pickCity(f: LocationIQItem) {
     const a = f.address;

@@ -19,6 +19,8 @@ import { BookItemCard } from "@/components/book-item-card";
 interface Address {
   id: string;
   addressText: string;
+  addressName?: string;
+  isDefault?: boolean;
 }
 
 interface WishlistBook {
@@ -253,18 +255,55 @@ function PasswordTab() {
 
 // ─── Tab: Addresses ───────────────────────────────────────────────────────────
 
-function NewAddressPanel({ onSave, onCancel }: { onSave: (r: AddressResult) => Promise<void>; onCancel: () => void }) {
+function parseAddressText(addressText: string): Partial<AddressResult> {
+  const parts = addressText.split(",").map((s) => s.trim());
+  const postalCode = parts.at(-1)?.match(/^\d{6}$/) ? parts.at(-1)! : "";
+  const withoutPostal = postalCode ? parts.slice(0, -1) : parts;
+
+  const aptMatch = addressText.match(/кв\.\s*(.+?)(?:,|$)/);
+  const apartment = aptMatch?.[1]?.trim() ?? "";
+
+  const country = withoutPostal[0] ?? "Беларусь";
+  const city = withoutPostal[1] ?? "";
+  const thirdPart = withoutPostal[2] ?? "";
+  const isRegion = /область|район|обл\.|р-н/i.test(thirdPart);
+  const state = isRegion ? thirdPart : "";
+  const streetStart = isRegion ? 3 : 2;
+  const aptIdx = withoutPostal.findIndex((p) => /кв\./i.test(p));
+  const streetEnd = aptIdx === -1 ? withoutPostal.length : aptIdx;
+  const street = withoutPostal.slice(streetStart, streetEnd).join(", ");
+
+  return { country, city, state, street, apartment, postalCode };
+}
+
+function NewAddressPanel({
+  onSave,
+  onCancel,
+}: {
+  onSave: (r: AddressResult, addressName: string) => Promise<void>;
+  onCancel: () => void;
+}) {
   const [result, setResult] = useState<AddressResult | null>(null);
+  const [addressName, setAddressName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSave = async () => {
     if (!result) return;
     setIsLoading(true);
-    try { await onSave(result); } finally { setIsLoading(false); }
+    try { await onSave(result, addressName); } finally { setIsLoading(false); }
   };
 
   return (
     <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+      <div className="space-y-1">
+        <label className="text-sm font-medium leading-none">Название адреса</label>
+        <input
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          value={addressName}
+          onChange={(e) => setAddressName(e.target.value)}
+          placeholder="Например: Дом, Работа..."
+        />
+      </div>
       <AddressFormLIQ onChange={setResult} />
       <div className="flex gap-2 pt-1">
         <Button size="sm" disabled={isLoading || !result} onClick={handleSave}>
@@ -280,6 +319,9 @@ function AddressesTab() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editAddressName, setEditAddressName] = useState("");
+  const [editAddressResult, setEditAddressResult] = useState<AddressResult | null>(null);
 
   const load = async () => {
     try {
@@ -293,10 +335,11 @@ function AddressesTab() {
 
   useEffect(() => { load(); }, []);
 
-  const handleAdd = async (r: AddressResult) => {
+  const handleAdd = async (r: AddressResult, addressName: string) => {
     const apt = r.apartment ? `, кв. ${r.apartment}` : "";
     const addressText = `${r.country}, ${r.city}${r.state ? `, ${r.state}` : ""}, ${r.street}${apt}${r.postalCode ? `, ${r.postalCode}` : ""}`;
-    await apiClient.post("/users/me/addresses", { addressText });
+    const isFirst = addresses.length === 0;
+    await apiClient.post("/users/me/addresses", { addressText, addressName: addressName || undefined, isDefault: isFirst });
     toast.success("Адрес добавлен");
     setShowAddForm(false);
     load();
@@ -308,27 +351,116 @@ function AddressesTab() {
     load();
   };
 
+  const handleSetDefault = async (id: string) => {
+    await apiClient.patch(`/users/me/addresses/${id}`, { isDefault: true });
+    load();
+  };
+
+  const startEdit = (addr: Address) => {
+    setEditingId(addr.id);
+    setEditAddressName(addr.addressName || "");
+    setEditAddressResult(parseAddressText(addr.addressText));
+  };
+
+  const handleEditSave = async (id: string, addr: Address) => {
+    const apt = editAddressResult?.apartment ? `, кв. ${editAddressResult.apartment}` : "";
+    const r = editAddressResult!;
+    const newAddressText = `${r.country}, ${r.city}${r.state ? `, ${r.state}` : ""}, ${r.street}${apt}${r.postalCode ? `, ${r.postalCode}` : ""}`;
+    const nameChanged = editAddressName !== (addr.addressName || "");
+    const addressChanged = newAddressText !== addr.addressText;
+    if (!nameChanged && !addressChanged) return;
+    await apiClient.patch(`/users/me/addresses/${id}`, {
+      ...(nameChanged ? { addressName: editAddressName || undefined } : {}),
+      ...(addressChanged ? { addressText: newAddressText } : {}),
+    });
+    toast.success("Адрес обновлён");
+    setEditingId(null);
+    load();
+  };
+
   if (isLoading) return <p className="text-sm text-muted-foreground">Загрузка...</p>;
 
   return (
-    <div className="space-y-4 max-w-lg">
+    <div className="space-y-3 max-w-lg">
       {addresses.length === 0 && !showAddForm && (
         <p className="text-sm text-muted-foreground">Адресов нет</p>
       )}
       {addresses.map((addr) => (
-        <div key={addr.id} className="flex items-start justify-between p-4 border rounded-lg">
-          <div className="text-sm">
-            <p>{addr.addressText}</p>
-          </div>
-          <div className="flex gap-1 shrink-0 ml-4">
-            <Button variant="ghost" size="icon" onClick={() => handleDelete(addr.id)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
+        <div
+          key={addr.id}
+          className={cn(
+            "border rounded-lg overflow-hidden transition-colors",
+            !addr.isDefault && editingId !== addr.id && "cursor-pointer hover:border-primary/50",
+            addr.isDefault && "border-primary"
+          )}
+          onClick={() => { if (!addr.isDefault && editingId !== addr.id) handleSetDefault(addr.id); }}
+        >
+          {editingId === addr.id ? (
+            <div className="p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+              <div className="space-y-1">
+                <label className="text-sm font-medium leading-none">Название адреса</label>
+                <input
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={editAddressName}
+                  onChange={(e) => setEditAddressName(e.target.value)}
+                  placeholder="Например: Дом, Работа..."
+                />
+              </div>
+              <AddressFormLIQ
+                key={addr.id}
+                initialValue={parseAddressText(addr.addressText)}
+                onChange={setEditAddressResult}
+              />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  disabled={
+                    editAddressName === (addr.addressName || "") &&
+                    (() => {
+                      if (!editAddressResult) return true;
+                      const apt = editAddressResult.apartment ? `, кв. ${editAddressResult.apartment}` : "";
+                      const r = editAddressResult;
+                      const newText = `${r.country}, ${r.city}${r.state ? `, ${r.state}` : ""}, ${r.street}${apt}${r.postalCode ? `, ${r.postalCode}` : ""}`;
+                      return newText === addr.addressText;
+                    })()
+                  }
+                  onClick={() => handleEditSave(addr.id, addr)}
+                >
+                  Сохранить
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>Отмена</Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start justify-between p-4">
+              <div className="space-y-1 text-sm min-w-0">
+                <div className="flex items-center gap-2">
+                  {addr.addressName && <span className="font-medium">{addr.addressName}</span>}
+                  {addr.isDefault && (
+                    <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                      По умолчанию
+                    </span>
+                  )}
+                </div>
+                <p className="text-muted-foreground">{addr.addressText}</p>
+              </div>
+              <div className="flex gap-1 shrink-0 ml-4">
+                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); startEdit(addr); }}>
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); handleDelete(addr.id); }}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ))}
       {showAddForm ? (
-        <NewAddressPanel onSave={handleAdd} onCancel={() => setShowAddForm(false)} />
+        <NewAddressPanel
+          onSave={handleAdd}
+          onCancel={() => setShowAddForm(false)}
+        />
       ) : (
         <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowAddForm(true)}>
           <Plus className="h-4 w-4" />

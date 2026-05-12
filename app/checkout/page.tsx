@@ -16,6 +16,8 @@ import { AddressFormLIQ, AddressResult } from "@/components/address-form";
 interface Address {
   id: string;
   addressText: string;
+  addressName?: string;
+  isDefault?: boolean;
 }
 
 export default function CheckoutPage() {
@@ -26,6 +28,7 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | "new" | "">("");
   const [newAddressResult, setNewAddressResult] = useState<AddressResult | null>(null);
+  const [newAddressLabel, setNewAddressLabel] = useState("");
 
   const [recipient, setRecipient] = useState({ firstName: "", lastName: "", phone: "" });
   const [touchedR, setTouchedR] = useState({ firstName: false, lastName: false, phone: false });
@@ -59,7 +62,8 @@ export default function CheckoutPage() {
     apiClient.get("/users/me").then((res) => {
       const addrs: Address[] = res.data.addresses || [];
       setAddresses(addrs);
-      if (addrs.length > 0) setSelectedAddressId(addrs[0].id);
+      const def = addrs.find((a) => a.isDefault) ?? addrs[0];
+      if (def) setSelectedAddressId(def.id);
       else setSelectedAddressId("new");
     }).catch(() => {});
   }, [isAuthenticated]);
@@ -125,7 +129,7 @@ export default function CheckoutPage() {
             label: "Сохранить",
             onClick: async () => {
               try {
-                await apiClient.post("/users/me/addresses", { addressText: addressString });
+                await apiClient.post("/users/me/addresses", { addressText: addressString, addressName: newAddressLabel || undefined });
                 toast.success("Адрес сохранён");
               } catch { /* handled by interceptor */ }
             },
@@ -226,7 +230,17 @@ export default function CheckoutPage() {
                     checked={selectedAddressId === addr.id}
                     onChange={() => setSelectedAddressId(addr.id)}
                   />
-                  <span className="text-sm">{addr.addressText}</span>
+                  <div>
+                  <div className="flex items-center gap-2 mb-0.5">
+                    {addr.addressName && <span className="text-sm font-medium">{addr.addressName}</span>}
+                    {addr.isDefault && (
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                        По умолчанию
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm text-muted-foreground">{addr.addressText}</span>
+                </div>
                 </label>
               ))}
               <label
@@ -248,7 +262,16 @@ export default function CheckoutPage() {
           )}
 
           {selectedAddressId === "new" && (
-            <div className="p-4 border rounded-lg bg-muted/30">
+            <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
+              <div className="space-y-1">
+                <label className="text-sm font-medium leading-none">Название адреса</label>
+                <input
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  value={newAddressLabel}
+                  onChange={(e) => setNewAddressLabel(e.target.value)}
+                  placeholder="Например: Дом, Работа..."
+                />
+              </div>
               <AddressFormLIQ onChange={setNewAddressResult} />
             </div>
           )}
