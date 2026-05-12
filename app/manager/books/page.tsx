@@ -61,7 +61,7 @@ export default function BooksPage() {
   };
 
   const importValid = importIsbn.trim().length > 0 && parseFloat(importPrice) > 0 && parseInt(importStock) >= 0;
-  const [page, setPage] = useState(0);
+  const page = Math.max(0, parseInt(searchParams.get("page") ?? "0") || 0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [searchInput, setSearchInput] = useState("");
@@ -82,6 +82,7 @@ export default function BooksPage() {
 
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+  const [scrollReady, setScrollReady] = useState(() => !sessionStorage.getItem("manager-books-scroll"));
 
   const [restoreTarget, setRestoreTarget] = useState<ManagedBook | null>(null);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<ManagedBook | null>(null);
@@ -121,7 +122,31 @@ export default function BooksPage() {
   useEffect(() => { loadBooks(); }, [loadBooks]);
 
   useEffect(() => {
-    const timer = setTimeout(() => { setPage(0); setSearch(searchInput.trim()); }, 400);
+    if (loading) return;
+    const saved = sessionStorage.getItem("manager-books-scroll");
+    if (saved) {
+      sessionStorage.removeItem("manager-books-scroll");
+      requestAnimationFrame(() => requestAnimationFrame(() => { tableRef.current?.scrollTo({ top: parseInt(saved) }); setScrollReady(true); }));
+    }
+  }, [loading]);
+
+  const updatePage = (p: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (p === 0) {
+      params.delete("page");
+    } else {
+      params.set("page", String(p));
+    }
+    const qs = params.toString();
+    router.replace(`/manager/books${qs ? `?${qs}` : ""}`, { scroll: false });
+  };
+
+  useEffect(() => {
+    const trimmed = searchInput.trim();
+    const timer = setTimeout(() => {
+      setSearch(trimmed);
+      if (trimmed !== search) updatePage(0);
+    }, 400);
     return () => clearTimeout(timer);
   }, [searchInput]);
 
@@ -135,7 +160,7 @@ export default function BooksPage() {
 
 
   const toggleSort = (field: SortField) => {
-    setPage(0);
+    updatePage(0);
     setSort((prev) => {
       const [f, dir] = prev.split(",");
       if (f === field) return `${field},${dir === "asc" ? "desc" : "asc"}`;
@@ -151,7 +176,7 @@ export default function BooksPage() {
       toast.success("Книга удалена");
       setDeleteTarget(null);
       await revalidateCatalogTag("books");
-      if (books.length === 1 && page > 0) setPage((p) => p - 1);
+      if (books.length === 1 && page > 0) updatePage(page - 1);
       else loadBooks();
     } catch {
       // handled by interceptor
@@ -205,7 +230,7 @@ export default function BooksPage() {
       toast.success("Книга удалена безвозвратно");
       setForceDeleteTarget(null);
       await revalidateCatalogTag("books");
-      if (books.length === 1 && page > 0) setPage((p) => p - 1);
+      if (books.length === 1 && page > 0) updatePage(page - 1);
       else loadBooks();
     } catch {
       // handled by interceptor
@@ -245,13 +270,13 @@ export default function BooksPage() {
         </div>
         <ManagerBookFilterSidebar
           filters={bookFilters}
-          onChange={(f) => { setPage(0); setBookFilters(f); }}
+          onChange={(f) => { updatePage(0); setBookFilters(f); }}
         />
         <div className="flex rounded-md border border-input overflow-hidden text-sm">
           {(["all", "active", "deleted"] as const).map((v) => (
             <button
               key={v}
-              onClick={() => { setStatusFilter(v); setPage(0); }}
+              onClick={() => { setStatusFilter(v); updatePage(0); }}
               className={`px-3 h-8 transition-colors ${statusFilter === v ? "bg-primary text-primary-foreground" : "bg-background hover:bg-muted"}`}
             >
               {v === "all" ? "Все" : v === "active" ? "Активные" : "Удалённые"}
@@ -259,7 +284,7 @@ export default function BooksPage() {
           ))}
         </div>
         {sort !== DEFAULT_SORT && (
-          <Button variant="destructive" size="sm" className="h-9 ml-auto" onClick={() => { setSort(DEFAULT_SORT); setPage(0); }}>
+          <Button variant="destructive" size="sm" className="h-9 ml-auto" onClick={() => { setSort(DEFAULT_SORT); updatePage(0); }}>
             <X className="h-3.5 w-3.5 mr-1" />
             Сбросить сортировку
           </Button>
@@ -274,7 +299,7 @@ export default function BooksPage() {
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
-          <div ref={tableRef} className="rounded-lg border overflow-auto flex-1 min-h-0">
+          <div ref={tableRef} className={`rounded-lg border overflow-auto flex-1 min-h-0 transition-opacity duration-100${!scrollReady ? " opacity-0" : ""}`}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -307,7 +332,7 @@ export default function BooksPage() {
                       "cursor-pointer",
                       isDeleted ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30" : "hover:bg-muted/40"
                     )}
-                    onClick={() => router.push(`/book/${book.id}`)}
+                    onClick={() => { sessionStorage.setItem("manager-books-scroll", String(tableRef.current?.scrollTop ?? 0)); router.push(`/book/${book.id}`); }}
                   >
                     <TableCell>
                       {book.coverUrl ? (
@@ -324,7 +349,7 @@ export default function BooksPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Link href={`/book/${book.id}`} className="font-medium hover:underline">{book.title}</Link>
+                      <Link href={`/book/${book.id}`} className="font-medium hover:underline" onClick={() => sessionStorage.setItem("manager-books-scroll", String(tableRef.current?.scrollTop ?? 0))}>{book.title}</Link>
                       <div className="text-xs text-muted-foreground mt-0.5">ISBN: {book.isbn || "—"}</div>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
@@ -382,8 +407,8 @@ export default function BooksPage() {
                             <Button variant="ghost" size="icon" title="Изменить остаток" onClick={(e) => { e.stopPropagation(); openStockDialog(book); }}>
                               <Package className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" asChild onClick={(e) => e.stopPropagation()}>
-                              <Link href={`/manager/books/${book.id}/edit`}>
+                            <Button variant="ghost" size="icon" asChild onClick={(e) => { e.stopPropagation(); sessionStorage.setItem("manager-books-scroll", String(tableRef.current?.scrollTop ?? 0)); }}>
+                              <Link href={`/manager/books/${book.id}/edit${page > 0 ? `?from=${page}` : ""}`}>
                                 <Pencil className="h-4 w-4" />
                               </Link>
                             </Button>
@@ -401,7 +426,7 @@ export default function BooksPage() {
             </Table>
           </div>
 
-          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} tableRef={tableRef} totalItems={totalElements} pageSize={PAGE_SIZE} />
+          <ManagerPagination page={page} totalPages={totalPages} onPageChange={updatePage} tableRef={tableRef} totalItems={totalElements} pageSize={PAGE_SIZE} />
         </div>
       ))}
 

@@ -33,7 +33,11 @@ export default function PublishersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "deleted">("all");
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => {
+    const saved = sessionStorage.getItem("manager-publishers-page");
+    if (saved) { sessionStorage.removeItem("manager-publishers-page"); return parseInt(saved); }
+    return 0;
+  });
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -50,6 +54,7 @@ export default function PublishersPage() {
 
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+  const [scrollReady, setScrollReady] = useState(() => !sessionStorage.getItem("manager-publishers-scroll"));
 
   const loadPublishers = useCallback(async () => {
     try {
@@ -63,6 +68,15 @@ export default function PublishersPage() {
   }, []);
 
   useEffect(() => { loadPublishers(); }, [loadPublishers]);
+
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem("manager-publishers-scroll");
+    if (saved) {
+      sessionStorage.removeItem("manager-publishers-scroll");
+      requestAnimationFrame(() => requestAnimationFrame(() => { tableRef.current?.scrollTo({ top: parseInt(saved) }); setScrollReady(true); }));
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (!lightboxUrl) return;
@@ -220,7 +234,7 @@ export default function PublishersPage() {
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
-          <div ref={tableRef} className="rounded-lg border overflow-auto flex-1 min-h-0">
+          <div ref={tableRef} className={`rounded-lg border overflow-auto flex-1 min-h-0 transition-opacity duration-100${!scrollReady ? " opacity-0" : ""}`}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -243,7 +257,7 @@ export default function PublishersPage() {
                         "cursor-pointer",
                         isDeleted ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30" : "hover:bg-muted/40"
                       )}
-                      onClick={() => router.push(`/publisher/${encodeURIComponent(publisher.name)}`)}
+                      onClick={() => { sessionStorage.setItem("manager-publishers-scroll", String(tableRef.current?.scrollTop ?? 0)); sessionStorage.setItem("manager-publishers-page", String(page)); router.push(`/publisher/${encodeURIComponent(publisher.name)}`); }}
                     >
                       <TableCell>
                         {publisher.logoUrl ? (
@@ -260,7 +274,7 @@ export default function PublishersPage() {
                         )}
                       </TableCell>
                       <TableCell className="font-medium">
-                        <Link href={`/publisher/${encodeURIComponent(publisher.name)}`} className="hover:underline">{publisher.name}</Link>
+                        <Link href={`/publisher/${encodeURIComponent(publisher.name)}`} className="hover:underline" onClick={() => { sessionStorage.setItem("manager-publishers-scroll", String(tableRef.current?.scrollTop ?? 0)); sessionStorage.setItem("manager-publishers-page", String(page)); }}>{publisher.name}</Link>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-xs truncate">
                         {publisher.description || "—"}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -16,6 +16,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 export default function EditBookPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const backUrl = useRef("/manager/books");
+  useEffect(() => {
+    const from = new URLSearchParams(window.location.search).get("from");
+    if (from) backUrl.current = `/manager/books?page=${from}`;
+  }, []);
   const [book, setBook] = useState<ManagedBook | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -60,7 +65,7 @@ export default function EditBookPage() {
       await booksApi.update(params.id, data);
       await revalidateBook(params.id);
       toast.success("Книга обновлена");
-      window.location.reload();
+      router.push(backUrl.current);
     } catch {
       // handled by interceptor
     }
@@ -110,6 +115,7 @@ export default function EditBookPage() {
         }}
         onSubmit={handleSubmit}
         submitLabel="Сохранить изменения"
+        onCancel={() => router.push(backUrl.current)}
         onDelete={() => setDeleteOpen(true)}
         deleteLabel={book.deletedAt ? "Удалить безвозвратно" : "Удалить"}
       />

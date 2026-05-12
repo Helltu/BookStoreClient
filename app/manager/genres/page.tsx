@@ -32,7 +32,11 @@ export default function GenresPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "deleted">("all");
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => {
+    const saved = sessionStorage.getItem("manager-genres-page");
+    if (saved) { sessionStorage.removeItem("manager-genres-page"); return parseInt(saved); }
+    return 0;
+  });
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -41,6 +45,7 @@ export default function GenresPage() {
   const [saving, setSaving] = useState(false);
 
   const tableRef = useRef<HTMLDivElement>(null);
+  const [scrollReady, setScrollReady] = useState(() => !sessionStorage.getItem("manager-genres-scroll"));
   const [deleteTarget, setDeleteTarget] = useState<Genre | null>(null);
   const [forceDeleteTarget, setForceDeleteTarget] = useState<Genre | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -57,6 +62,15 @@ export default function GenresPage() {
   }, []);
 
   useEffect(() => { loadGenres(); }, [loadGenres]);
+
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem("manager-genres-scroll");
+    if (saved) {
+      sessionStorage.removeItem("manager-genres-scroll");
+      requestAnimationFrame(() => requestAnimationFrame(() => { tableRef.current?.scrollTo({ top: parseInt(saved) }); setScrollReady(true); }));
+    }
+  }, [loading]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -197,7 +211,7 @@ export default function GenresPage() {
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
-          <div ref={tableRef} className="rounded-lg border overflow-auto flex-1 min-h-0">
+          <div ref={tableRef} className={`rounded-lg border overflow-auto flex-1 min-h-0 transition-opacity duration-100${!scrollReady ? " opacity-0" : ""}`}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -218,10 +232,10 @@ export default function GenresPage() {
                         "cursor-pointer",
                         isDeleted ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30" : "hover:bg-muted/40"
                       )}
-                      onClick={() => router.push(`/genre/${encodeURIComponent(genre.name)}`)}
+                      onClick={() => { sessionStorage.setItem("manager-genres-scroll", String(tableRef.current?.scrollTop ?? 0)); sessionStorage.setItem("manager-genres-page", String(page)); router.push(`/genre/${encodeURIComponent(genre.name)}`); }}
                     >
                       <TableCell className="font-medium">
-                        <Link href={`/genre/${encodeURIComponent(genre.name)}`} className="hover:underline">{genre.name}</Link>
+                        <Link href={`/genre/${encodeURIComponent(genre.name)}`} className="hover:underline" onClick={() => { sessionStorage.setItem("manager-genres-scroll", String(tableRef.current?.scrollTop ?? 0)); sessionStorage.setItem("manager-genres-page", String(page)); }}>{genre.name}</Link>
                       </TableCell>
                       <TableCell className="hidden xl:table-cell font-mono text-xs text-muted-foreground">{genre.id}</TableCell>
                       <TableCell className="text-right">

@@ -35,11 +35,12 @@ interface BookFormProps {
   };
   onSubmit: (data: BookFormData) => Promise<void>;
   submitLabel: string;
+  onCancel?: () => void;
   onDelete?: () => void;
   deleteLabel?: string;
 }
 
-export function BookForm({ bookId, initialData, onSubmit, submitLabel, onDelete, deleteLabel }: BookFormProps) {
+export function BookForm({ bookId, initialData, onSubmit, submitLabel, onCancel, onDelete, deleteLabel }: BookFormProps) {
   const [genres, setGenres] = useState<Genre[]>([]);
   const [authors, setAuthors] = useState<Author[]>([]);
   const [publishers, setPublishers] = useState<Publisher[]>([]);
@@ -854,18 +855,20 @@ const keywords = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
 
       {/* Submit */}
       <div className="flex gap-3 pt-4 border-t">
-        <Button type="submit" disabled={saving || !form.title.trim() || !isDirty}>
-          {saving ? "Сохранение..." : submitLabel}
-        </Button>
-        <Button type="button" variant="outline" onClick={() => window.history.back()}>
-          Отмена
-        </Button>
         {onDelete && (
-          <Button type="button" variant="destructive" className="ml-auto" onClick={onDelete}>
+          <Button type="button" variant="destructive" onClick={onDelete}>
             <Trash2 className="h-4 w-4 mr-2" />
             {deleteLabel ?? "Удалить"}
           </Button>
         )}
+        <div className="flex gap-3 ml-auto">
+          <Button type="button" variant="outline" onClick={() => onCancel ? onCancel() : window.history.back()}>
+            Отмена
+          </Button>
+          <Button type="submit" disabled={saving || !form.title.trim() || !isDirty}>
+            {saving ? "Сохранение..." : submitLabel}
+          </Button>
+        </div>
       </div>
     </form>
   );

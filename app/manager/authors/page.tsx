@@ -33,7 +33,11 @@ export default function AuthorsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "deleted">("all");
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(() => {
+    const saved = sessionStorage.getItem("manager-authors-page");
+    if (saved) { sessionStorage.removeItem("manager-authors-page"); return parseInt(saved); }
+    return 0;
+  });
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -50,6 +54,7 @@ export default function AuthorsPage() {
 
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const tableRef = useRef<HTMLDivElement>(null);
+  const [scrollReady, setScrollReady] = useState(() => !sessionStorage.getItem("manager-authors-scroll"));
 
   const loadAuthors = useCallback(async () => {
     try {
@@ -63,6 +68,15 @@ export default function AuthorsPage() {
   }, []);
 
   useEffect(() => { loadAuthors(); }, [loadAuthors]);
+
+  useEffect(() => {
+    if (loading) return;
+    const saved = sessionStorage.getItem("manager-authors-scroll");
+    if (saved) {
+      sessionStorage.removeItem("manager-authors-scroll");
+      requestAnimationFrame(() => requestAnimationFrame(() => { tableRef.current?.scrollTo({ top: parseInt(saved) }); setScrollReady(true); }));
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (!lightboxUrl) return;
@@ -220,7 +234,7 @@ export default function AuthorsPage() {
         </div>
       ) : (
         <div className="flex flex-col flex-1 min-h-0">
-          <div ref={tableRef} className="rounded-lg border overflow-auto flex-1 min-h-0">
+          <div ref={tableRef} className={`rounded-lg border overflow-auto flex-1 min-h-0 transition-opacity duration-100${!scrollReady ? " opacity-0" : ""}`}>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -243,7 +257,7 @@ export default function AuthorsPage() {
                         "cursor-pointer",
                         isDeleted ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/20 dark:hover:bg-red-950/30" : "hover:bg-muted/40"
                       )}
-                      onClick={() => router.push(`/author/${encodeURIComponent(author.name)}`)}
+                      onClick={() => { sessionStorage.setItem("manager-authors-scroll", String(tableRef.current?.scrollTop ?? 0)); sessionStorage.setItem("manager-authors-page", String(page)); router.push(`/author/${encodeURIComponent(author.name)}`); }}
                     >
                       <TableCell>
                         {author.photoUrl ? (
@@ -260,7 +274,7 @@ export default function AuthorsPage() {
                         )}
                       </TableCell>
                       <TableCell className="font-medium">
-                        <Link href={`/author/${encodeURIComponent(author.name)}`} className="hover:underline">{author.name}</Link>
+                        <Link href={`/author/${encodeURIComponent(author.name)}`} className="hover:underline" onClick={() => { sessionStorage.setItem("manager-authors-scroll", String(tableRef.current?.scrollTop ?? 0)); sessionStorage.setItem("manager-authors-page", String(page)); }}>{author.name}</Link>
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-sm text-muted-foreground max-w-xs truncate">
                         {author.biography || "—"}
