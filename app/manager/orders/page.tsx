@@ -160,17 +160,12 @@ export default function OrdersPage() {
 
   const tableRef = useRef<HTMLDivElement>(null);
 
-  const load = useCallback(async (p: number, num?: string, customer?: string, status?: OrderStatus | "ALL", from?: string, to?: string) => {
+  const load = useCallback(async (p: number) => {
     setLoading(true);
-    const n = num ?? filterNumber;
-    const c = customer ?? filterCustomer;
-    const s = status ?? filterStatus;
-    const f = from ?? filterFrom;
-    const t = to ?? filterTo;
     try {
-      const hasFilters = n || c || (s !== "ALL") || f || t;
+      const hasFilters = filterNumber || filterCustomer || filterStatus !== "ALL" || filterFrom || filterTo;
       const res = hasFilters
-        ? await ordersApi.search({ page: p, size: PAGE_SIZE, orderNumber: n || undefined, customerName: c || undefined, status: s !== "ALL" ? s : undefined, from: f || undefined, to: t || undefined })
+        ? await ordersApi.search({ page: p, size: PAGE_SIZE, orderNumber: filterNumber || undefined, customerName: filterCustomer || undefined, status: filterStatus !== "ALL" ? filterStatus : undefined, from: filterFrom || undefined, to: filterTo || undefined })
         : await ordersApi.getAll(p, PAGE_SIZE);
       setOrders(res.data.content);
       setTotalPages(res.data.totalPages);
@@ -180,21 +175,22 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterNumber, filterCustomer, filterStatus, filterFrom, filterTo]);
+  }, [page, filterNumber, filterCustomer, filterStatus, filterFrom, filterTo]);
 
-  // debounce for text inputs
+  useEffect(() => { load(page); }, [load]);
+
+  const [debouncedNumber, setDebouncedNumber] = useState(filterNumber);
+  const [debouncedCustomer, setDebouncedCustomer] = useState(filterCustomer);
+
   useEffect(() => {
-    const timer = setTimeout(() => { setPage(0); load(0, filterNumber, filterCustomer); }, 400);
+    const timer = setTimeout(() => { setDebouncedNumber(filterNumber); setDebouncedCustomer(filterCustomer); }, 400);
     return () => clearTimeout(timer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterNumber, filterCustomer]);
 
-  // immediate for selects/dates
   useEffect(() => {
     setPage(0);
-    load(0, filterNumber, filterCustomer, filterStatus, filterFrom, filterTo);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus, filterFrom, filterTo]);
+  }, [debouncedNumber, debouncedCustomer, filterStatus, filterFrom, filterTo]);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) setSortDir((d) => d === "asc" ? "desc" : "asc");
@@ -417,7 +413,7 @@ export default function OrdersPage() {
                     <TableCell className="hidden md:table-cell text-sm">{order.deliveryDetails?.customerName}</TableCell>
                     <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">{formatDate(order.createdAt)}</TableCell>
                     <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">{order.deliveryDetails?.deliveryDate ? formatDate(order.deliveryDetails.deliveryDate) : "—"}</TableCell>
-                    <TableCell className="text-right text-sm font-medium">{order.totalCost.toLocaleString("ru-RU")} ₽</TableCell>
+                    <TableCell className="text-right text-sm font-medium">{order.totalCost.toLocaleString("ru-RU")} р.</TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); openDetail(order); }}>
                         <Eye className="h-4 w-4" />
@@ -428,7 +424,7 @@ export default function OrdersPage() {
               </TableBody>
             </Table>
           </div>
-          <ManagerPagination page={page} totalPages={totalPages} onPageChange={(p) => { setPage(p); load(p); }} tableRef={tableRef} totalItems={totalElements} pageSize={20} />
+          <ManagerPagination page={page} totalPages={totalPages} onPageChange={setPage} tableRef={tableRef} totalItems={totalElements} pageSize={20} />
         </div>
       )}
 
@@ -455,7 +451,7 @@ export default function OrdersPage() {
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Сумма</p>
-                      <p className="font-medium">{selectedOrder.totalCost.toLocaleString("ru-RU")} ₽</p>
+                      <p className="font-medium">{selectedOrder.totalCost.toLocaleString("ru-RU")} р.</p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Получатель</p>

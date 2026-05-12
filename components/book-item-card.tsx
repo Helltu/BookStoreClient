@@ -77,7 +77,7 @@ export function BookItemCard({ item, onUpdateQuantity, onRemove, onRemoveFromWis
         </div>
 
         <div className="mt-auto pt-3 flex items-center justify-end gap-3">
-          <div className="font-bold text-lg">{(item.price * item.quantity).toFixed(2)} р.</div>
+          <div className="font-bold text-lg">{(item.price * item.quantity).toLocaleString("ru-RU")} р.</div>
           {onUpdateQuantity && (
             <div className="flex items-center border rounded-md" onClick={(e) => e.stopPropagation()}>
               <Button type="button" variant="ghost" size="icon" className="h-8 w-8 rounded-none" onClick={() => onUpdateQuantity(item.bookId, item.quantity - 1)} disabled={item.quantity <= 1}>
