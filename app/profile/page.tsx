@@ -359,7 +359,7 @@ function AddressesTab() {
   const startEdit = (addr: Address) => {
     setEditingId(addr.id);
     setEditAddressName(addr.addressName || "");
-    setEditAddressResult(parseAddressText(addr.addressText));
+    setEditAddressResult(parseAddressText(addr.addressText) as AddressResult);
   };
 
   const handleEditSave = async (id: string, addr: Address) => {
