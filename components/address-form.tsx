@@ -59,7 +59,6 @@ function useLIQ(query: string, extraParams: Record<string, string> = {}) {
         const res = await fetch(`https://api.locationiq.com/v1/autocomplete?${params}`);
         if (!res.ok) return;
         const json = await res.json();
-        console.log("[LIQ]", query, json);
         setSuggestions(Array.isArray(json) ? json : []);
       } catch { /* ignore */ }
     }, 350);

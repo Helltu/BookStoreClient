@@ -22,7 +22,7 @@ interface Address {
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { user, isAuthenticated, isLoading: authLoading, fetchProfile } = useAuthStore();
   const { items, clearCart, removeItem, updateQuantity, updateStockQuantity } = useCartStore();
 
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -111,6 +111,15 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
     try {
+      const profilePatch: { firstName?: string; lastName?: string; phone?: string } = {};
+      if (!(user as any).firstName && recipient.firstName) profilePatch.firstName = recipient.firstName;
+      if (!(user as any).lastName && recipient.lastName) profilePatch.lastName = recipient.lastName;
+      if (!(user as any).contactPhone && recipient.phone) profilePatch.phone = recipient.phone;
+      if (Object.keys(profilePatch).length > 0) {
+        await apiClient.patch("/users/me", profilePatch);
+        await fetchProfile();
+      }
+
       await apiClient.post("/orders", {
         items: items.map((i) => ({ bookId: i.bookId, quantity: i.quantity })),
         deliveryDetails: {
@@ -122,22 +131,33 @@ export default function CheckoutPage() {
       clearCart();
       toast.success("Заказ оформлен!");
       if (selectedAddressId === "new" && addressString) {
-        toast.info("Сохранить адрес?", {
-          description: addressString,
-          duration: Infinity,
-          action: {
-            label: "Сохранить",
-            onClick: async () => {
-              try {
-                await apiClient.post("/users/me/addresses", { addressText: addressString, addressName: newAddressLabel || undefined });
-                toast.success("Адрес сохранён");
-              } catch { /* handled by interceptor */ }
+        if (addresses.length === 0) {
+          try {
+            await apiClient.post("/users/me/addresses", {
+              addressText: addressString,
+              addressName: newAddressLabel || undefined,
+              isDefault: true,
+            });
+            await fetchProfile();
+          } catch { /* handled by interceptor */ }
+        } else {
+          toast.info("Сохранить адрес?", {
+            description: addressString,
+            duration: Infinity,
+            action: {
+              label: "Сохранить",
+              onClick: async () => {
+                try {
+                  await apiClient.post("/users/me/addresses", { addressText: addressString, addressName: newAddressLabel || undefined });
+                  toast.success("Адрес сохранён");
+                } catch { /* handled by interceptor */ }
+              },
             },
-          },
-          cancel: { label: "Пропустить", onClick: () => {} },
-        });
+            cancel: { label: "Пропустить", onClick: () => {} },
+          });
+        }
       }
-      router.push("/profile?tab=orders");
+      router.replace("/profile?tab=orders");
     } catch {
       // handled by axios interceptor
     } finally {
