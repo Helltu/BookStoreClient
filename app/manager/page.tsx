@@ -285,6 +285,11 @@ export default function ManagerDashboard() {
 
   return (
     <div className="space-y-8 pb-10">
+      {(["genres", "authors", "publishers", "books"] as CatalogEntity[]).map(entity => (
+        <input key={entity} id={`import-input-${entity}`} type="file" accept=".json" className="hidden"
+          ref={el => { fileInputRefs.current[entity] = el; }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleImport(entity, f); e.target.value = ""; }} />
+      ))}
       <h1 className="text-2xl font-bold">Обзор</h1>
 
       {ioMessage && (
@@ -298,27 +303,28 @@ export default function ManagerDashboard() {
         {catalogCards.map((card) => {
           const ioKey = card.key as CatalogEntity;
           return (
-            <Link key={card.key} href={card.href}
+            <div key={card.key}
               className="rounded-xl border bg-card p-6 shadow-sm flex flex-col hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-4">
-                <card.icon className={`h-8 w-8 ${card.color}`} />
-                <span className="text-3xl font-bold">{catalogLoading ? "—" : stats[card.key]}</span>
-              </div>
-              <p className="text-sm font-medium text-muted-foreground mb-4">{card.label}</p>
-              <div className="mt-auto flex gap-2" onClick={e => e.preventDefault()}>
-                <button disabled={ioLoading === ioKey} onClick={() => handleExport(ioKey)}
+              <Link href={card.href} className="flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <card.icon className={`h-8 w-8 ${card.color}`} />
+                  <span className="text-3xl font-bold">{catalogLoading ? "—" : stats[card.key]}</span>
+                </div>
+                <p className="text-sm font-medium text-muted-foreground mb-4">{card.label}</p>
+              </Link>
+              <div className="mt-auto flex gap-2">
+                <button disabled={ioLoading === ioKey}
+                  onClick={() => handleExport(ioKey)}
                   className="flex-1 flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs border hover:bg-muted transition-colors disabled:opacity-50">
                   <Download className="h-3.5 w-3.5" /> Экспорт
                 </button>
-                <button disabled={ioLoading === ioKey} onClick={() => fileInputRefs.current[ioKey]?.click()}
+                <button disabled={ioLoading === ioKey}
+                  onClick={() => fileInputRefs.current[ioKey]?.click()}
                   className="flex-1 flex items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-xs border hover:bg-muted transition-colors disabled:opacity-50">
                   <Upload className="h-3.5 w-3.5" /> Импорт
                 </button>
-                <input type="file" accept=".json" className="hidden"
-                  ref={el => { fileInputRefs.current[ioKey] = el; }}
-                  onChange={e => { const f = e.target.files?.[0]; if (f) handleImport(ioKey, f); e.target.value = ""; }} />
               </div>
-            </Link>
+            </div>
           );
         })}
 
