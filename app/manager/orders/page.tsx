@@ -62,6 +62,16 @@ const SLOT_END_HOUR: Record<DeliverySlot, number> = {
   EVENING: 22,
 };
 
+const LABEL_TO_SLOT: Record<string, DeliverySlot> = Object.fromEntries(
+  (Object.keys(SLOT_LABELS) as DeliverySlot[]).map((s) => [SLOT_LABELS[s], s])
+);
+
+function normalizeSlot(value: string | undefined | null): DeliverySlot | undefined {
+  if (!value) return undefined;
+  if (value in SLOT_LABELS) return value as DeliverySlot;
+  return LABEL_TO_SLOT[value];
+}
+
 function isSlotDisabled(slot: DeliverySlot, date: string): boolean {
   const today = new Date().toISOString().slice(0, 10);
   if (date !== today) return false;
@@ -156,6 +166,8 @@ export default function OrdersPage() {
   const [slotSaving, setSlotSaving] = useState(false);
 
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [statusAction, setStatusAction] = useState<"advance" | "fail">("advance");
+  const statusActionRef = useRef<"advance" | "fail">("advance");
   const [statusSaving, setStatusSaving] = useState(false);
 
   const tableRef = useRef<HTMLDivElement>(null);
@@ -233,13 +245,14 @@ export default function OrdersPage() {
     setStatusSaving(true);
     try {
       if (["PROCESSING", "FAILED"].includes(selectedOrder.status)) {
+        const slotKey = normalizeSlot(selectedOrder.deliveryDetails.deliveryTimeSlot);
         await ordersApi.ship(
           selectedOrder.id,
           selectedOrder.deliveryDetails.deliveryDate!,
-          SLOT_LABELS[selectedOrder.deliveryDetails.deliveryTimeSlot as DeliverySlot],
+          slotKey ? SLOT_LABELS[slotKey] : (selectedOrder.deliveryDetails.deliveryTimeSlot as string),
         );
         toast.success(`Статус обновлён: ${STATUS_LABELS["SHIPPED"]}`);
-      } else if (selectedOrder.status === "SHIPPED") {
+      } else if (selectedOrder.status === "SHIPPED" && statusActionRef.current === "fail") {
         await ordersApi.updateStatus(selectedOrder.id, "FAILED");
         toast.success(`Статус обновлён: ${STATUS_LABELS["FAILED"]}`);
       } else {
@@ -308,7 +321,7 @@ export default function OrdersPage() {
 
   const openSlotDialog = () => {
     const date = selectedOrder?.deliveryDetails?.deliveryDate ?? "";
-    const existingSlot = selectedOrder?.deliveryDetails?.deliveryTimeSlot ?? "MORNING";
+    const existingSlot = normalizeSlot(selectedOrder?.deliveryDetails?.deliveryTimeSlot) ?? "MORNING";
     const firstAvailable = (["MORNING", "AFTERNOON", "EVENING"] as DeliverySlot[]).find((s) => !isSlotDisabled(s, date)) ?? "MORNING";
     setSlotDate(date);
     setSlotTime(isSlotDisabled(existingSlot, date) ? firstAvailable : existingSlot);
@@ -471,15 +484,18 @@ export default function OrdersPage() {
                         <p className="font-medium">{selectedOrder.userEmail}</p>
                       </div>
                     )}
-                    {selectedOrder.deliveryDetails.deliveryDate && (
-                      <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground mb-0.5">Доставка</p>
-                        <p className="font-medium">
-                          {formatDate(selectedOrder.deliveryDetails.deliveryDate)}
-                          {selectedOrder.deliveryDetails.deliveryTimeSlot && ` · ${SLOT_LABELS[selectedOrder.deliveryDetails.deliveryTimeSlot]}`}
-                        </p>
-                      </div>
-                    )}
+                    {selectedOrder.deliveryDetails.deliveryDate && (() => {
+                      const slotKey = normalizeSlot(selectedOrder.deliveryDetails.deliveryTimeSlot);
+                      return (
+                        <div className="col-span-2">
+                          <p className="text-xs text-muted-foreground mb-0.5">Доставка</p>
+                          <p className="font-medium">
+                            {formatDate(selectedOrder.deliveryDetails.deliveryDate)}
+                            {slotKey && ` · ${SLOT_LABELS[slotKey]}`}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   <Separator />
@@ -500,11 +516,11 @@ export default function OrdersPage() {
               {hasActions && (
                 <div className="absolute bottom-0 left-0 right-0 border-t bg-background px-5 py-4 flex flex-col gap-2">
                   {/* NEW → PROCESSING */}
-                  {NEXT_STATUS[selectedOrder.status] && (
+                  {NEXT_STATUS[selectedOrder.status] && selectedOrder.status !== "SHIPPED" && (
                     <Button
                       className="w-full justify-start"
                       variant="outline"
-                      onClick={() => setStatusDialogOpen(true)}
+                      onClick={() => { statusActionRef.current = "advance"; setStatusAction("advance"); setStatusDialogOpen(true); }}
                       disabled={
                         NEXT_STATUS[selectedOrder.status] === "DELIVERED" &&
                         (!selectedOrder.deliveryDetails?.deliveryDate || !selectedOrder.deliveryDetails?.deliveryTimeSlot)
@@ -519,16 +535,23 @@ export default function OrdersPage() {
                     <Button
                       className="w-full justify-start"
                       variant="outline"
-                      onClick={() => setStatusDialogOpen(true)}
+                      onClick={() => { statusActionRef.current = "advance"; setStatusAction("advance"); setStatusDialogOpen(true); }}
                       disabled={!selectedOrder.deliveryDetails?.deliveryDate || !selectedOrder.deliveryDetails?.deliveryTimeSlot}
                     >
                       <ArrowRight className="h-4 w-4 mr-2" />
                       Перевести в «{STATUS_LABELS["SHIPPED"]}»
                     </Button>
                   )}
+                  {/* SHIPPED → DELIVERED */}
+                  {selectedOrder.status === "SHIPPED" && (
+                    <Button className="w-full justify-start" variant="outline" onClick={() => { statusActionRef.current = "advance"; setStatusAction("advance"); setStatusDialogOpen(true); }}>
+                      <ArrowRight className="h-4 w-4 mr-2" />
+                      Перевести в «{STATUS_LABELS["DELIVERED"]}»
+                    </Button>
+                  )}
                   {/* SHIPPED → FAILED */}
                   {selectedOrder.status === "SHIPPED" && (
-                    <Button className="w-full justify-start" variant="outline" onClick={() => setStatusDialogOpen(true)}>
+                    <Button className="w-full justify-start" variant="outline" onClick={() => { statusActionRef.current = "fail"; setStatusAction("fail"); setStatusDialogOpen(true); }}>
                       <XCircle className="h-4 w-4 mr-2 text-destructive" />
                       Отметить как «{STATUS_LABELS["FAILED"]}»
                     </Button>
@@ -572,13 +595,18 @@ export default function OrdersPage() {
           <DialogHeader>
             <DialogTitle>Изменить статус заказа?</DialogTitle>
           </DialogHeader>
-          {selectedOrder && NEXT_STATUS[selectedOrder.status] && (
-            <p className="text-sm text-muted-foreground">
-              Заказ <span className="font-mono font-medium">#{selectedOrder.orderNumber}</span> будет переведён из{" "}
-              <strong>{STATUS_LABELS[selectedOrder.status]}</strong> в{" "}
-              <strong>{STATUS_LABELS[NEXT_STATUS[selectedOrder.status]!]}</strong>.
-            </p>
-          )}
+          {selectedOrder && (() => {
+            const toStatus = statusAction === "fail" && selectedOrder.status === "SHIPPED"
+              ? "FAILED"
+              : (["PROCESSING", "FAILED"].includes(selectedOrder.status) ? "SHIPPED" : NEXT_STATUS[selectedOrder.status]);
+            return toStatus ? (
+              <p className="text-sm text-muted-foreground">
+                Заказ <span className="font-mono font-medium">#{selectedOrder.orderNumber}</span> будет переведён из{" "}
+                <strong>{STATUS_LABELS[selectedOrder.status]}</strong> в{" "}
+                <strong>{STATUS_LABELS[toStatus]}</strong>.
+              </p>
+            ) : null;
+          })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setStatusDialogOpen(false)}>Отмена</Button>
             <Button onClick={handleAdvanceStatus} disabled={statusSaving}>
