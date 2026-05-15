@@ -6,14 +6,14 @@ services:
       context: .
       args:
         NEXT_PUBLIC_LOCATIONIQ_KEY: ${NEXT_PUBLIC_LOCATIONIQ_KEY}
-        BACKEND_URL: ${BACKEND_URL:-http://backend:8080}
+        BACKEND_URL: ${BACKEND_URL}
     image: book-store-client:latest
     container_name: book-store-client
     ports:
       - "3000:3000"
     environment:
       NODE_ENV: production
-      BACKEND_URL: ${BACKEND_URL:-http://backend:8080}
+      BACKEND_URL: ${BACKEND_URL}
     networks:
       - backend
     restart: unless-stopped
